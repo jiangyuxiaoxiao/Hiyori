@@ -1,0 +1,49 @@
+{
+  "Plugin": {
+    "Dir": [
+      "nonebot_plugin_apscheduler",
+      "Database_Manager",
+      "Blacklist",
+      "Function_CD",
+      "Broadcast",
+      "nonebot_plugin_htmlrender",
+      "Hiyori.Plugins.Basic_plugins.Plugin_Manager",
+      "Ban_Checker",
+      "nonebot_plugin_guild_patch",
+      "nonebot_plugin_datastore",
+      "nonebot_plugin_saa",
+
+
+      "Update_News",
+      "Shop",
+      "SlaveMarket",
+      "HiyoriShop",
+      "SpotMarket",
+
+      "Menu",
+      "MessageRecallChecker",
+      "TrumpFucker",
+      "Black_History",
+      "Poke",
+      "SignIn",
+      "NickName",
+
+      "nonebot_plugin_eitherchoice",
+
+
+      "nonebot_plugin_imageutils",
+      "nonebot_plugin_memes",
+      "nonebot_plugin_petpet",
+      "nonebot_plugin_follow_withdraw",
+      "nonebot_plugin_picstatus",
+      "nonebot_plugin_animeres",
+      "nonebot_plugin_ygo_trade",
+      "nonebot_plugin_fortune",
+      "nonebot_plugin_who_at_me",
+      "nonebot_plugin_analysis_bilibili",
+      "nonebot_plugin_colormind",
+      "nonebot_plugin_picmcstat",
+      "nonebot_plugin_backup"
+    ]
+  }
+}
