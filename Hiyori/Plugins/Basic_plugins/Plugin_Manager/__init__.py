@@ -14,6 +14,7 @@ from nonebot import get_loaded_plugins
 import re
 from .pluginManager import pluginsManager
 from .hook import check_group_plugin_status, loadConfig
+from .api import *
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import md_to_pic
 from nonebot.plugin import PluginMetadata
 
