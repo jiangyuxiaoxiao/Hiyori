@@ -5,3 +5,6 @@
 @Desc: 妃爱商店
 @Ver : 1.0.0
 """
+from .shop import HiyoriShopInit
+
+HiyoriShopInit()
