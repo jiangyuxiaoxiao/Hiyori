@@ -28,7 +28,7 @@ async def _(QQ: int, Group: int):
                 # 添加插件状态
                 if Group != 0:
                     result["group_status"] = pluginsManager.GroupPluginIsOn(GroupID=str(Group), PluginName=data.name)
-                result["person_status"] = pluginsManager.GroupPluginIsOn(GroupID=str(Group), PluginName=data.name)
+                result["person_status"] = pluginsManager.UserPluginIsOn(QQ=str(QQ), PluginName=data.name)
             if hasattr(data, "description"):
                 result["description"] = data.description
             if hasattr(data, "usage"):
