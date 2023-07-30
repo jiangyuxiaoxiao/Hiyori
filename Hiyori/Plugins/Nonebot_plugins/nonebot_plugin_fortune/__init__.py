@@ -51,7 +51,7 @@ __plugin_meta__ = PluginMetadata(
     },
 )
 
-general_divine = on_command("今日运势", aliases={"抽签", "运势"}, permission=GROUP, priority=Priority.普通优先级)
+general_divine = on_regex(r"(^#?今日运势$)|(^#?运势$)|(^#?抽签$)", permission=GROUP, priority=Priority.普通优先级)
 specific_divine = on_regex(r"^[^/]\S+抽签$", permission=GROUP, priority=Priority.普通优先级)
 limit_setting = on_regex(r"^指定(.*?)签$", permission=GROUP, priority=Priority.普通优先级)
 change_theme = on_regex(
@@ -98,7 +98,7 @@ async def _(event: GroupMessageEvent, args: Annotated[Message, CommandArg()]):
         await general_divine.finish("今日运势生成出错……")
 
     if not is_first:
-        msg = MessageSegment.text("你今天抽过签了，再给你看一次哦🤗\n") + MessageSegment.image(
+        msg = MessageSegment.text("你今天抽过签了，再给你看一次哦\n") + MessageSegment.image(
             image_file
         )
     else:
@@ -130,7 +130,7 @@ async def _(
 
                 if not is_first:
                     msg = MessageSegment.text(
-                        "你今天抽过签了，再给你看一次哦🤗\n"
+                        "你今天抽过签了，再给你看一次哦\n"
                     ) + MessageSegment.image(image_file)
                 else:
                     logger.info(f"User {uid} | Group {gid} 占卜了今日运势")
@@ -188,7 +188,7 @@ async def _(event: GroupMessageEvent, limit: Annotated[str, Depends(get_user_arg
                 await limit_setting.finish("今日运势生成出错……")
 
     if not is_first:
-        msg = MessageSegment.text("你今天抽过签了，再给你看一次哦🤗\n") + MessageSegment.image(
+        msg = MessageSegment.text("你今天抽过签了，再给你看一次哦\n") + MessageSegment.image(
             image_file
         )
     else:
