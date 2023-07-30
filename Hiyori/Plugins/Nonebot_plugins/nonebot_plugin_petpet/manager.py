@@ -10,7 +10,7 @@ from nonebot.log import logger
 from .utils import Meme
 from .data_source import memes
 
-data_path = Path() / "data" / "petpet"
+data_path = Path() / "Data" / "petpet"
 
 
 class MemeMode(IntEnum):

@@ -11,7 +11,7 @@ from Hiyori.Plugins.Basic_plugins.nonebot_plugin_imageutils .fonts import add_fo
 
 from .config import petpet_config
 
-data_path = Path() / "data" / "petpet"
+data_path = Path() / "Data" / "petpet"
 
 
 def load_image(path: str) -> BuildImage:

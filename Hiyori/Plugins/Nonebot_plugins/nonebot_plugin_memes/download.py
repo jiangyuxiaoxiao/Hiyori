@@ -11,7 +11,7 @@ from nonebot_plugin_imageutils.fonts import add_font, Font
 
 from .config import memes_config
 
-data_path = Path() / "data" / "memes"
+data_path = Path() / "Data" / "memes"
 
 
 def load_image(path: str) -> BuildImage:

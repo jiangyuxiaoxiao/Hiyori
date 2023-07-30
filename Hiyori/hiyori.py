@@ -17,6 +17,7 @@ from nonebot.plugin import _plugins
 startTime = time.time_ns()
 
 # 插件目录加载进环境变量
+sys.path.append("../")
 sys.path.append("./Plugins/Basic_plugins")  # 底层实现插件，管理类插件，请在加载时置于最顶层
 sys.path.append("./Plugins/Debug_plugins")  # 调试插件
 sys.path.append("./Plugins/Nonebot_plugins")  # nonebot社区插件

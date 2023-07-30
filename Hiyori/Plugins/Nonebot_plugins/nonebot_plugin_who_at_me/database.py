@@ -2,7 +2,7 @@ from pathlib import Path
 from os import path
 import peewee as pw
 
-db_path = Path().absolute() / "data" / "who@me" / "data.db"
+db_path = Path().absolute() / "Data" / "who@me" / "data.db"
 db_path.parent.mkdir(exist_ok=True, parents=True)
 db = pw.SqliteDatabase(db_path)
 
