@@ -1,5 +1,5 @@
 from typing import Annotated
-
+import re
 from nonebot import on_command, on_fullmatch, on_regex, require
 from nonebot.adapters.onebot.v11 import (
     GROUP,
@@ -84,11 +84,7 @@ async def _(event: GroupMessageEvent):
 
 
 @general_divine.handle()
-async def _(event: GroupMessageEvent, args: Annotated[Message, CommandArg()]):
-    arg: str = args.extract_plain_text()
-
-    if "帮助" in arg[-2:]:
-        await general_divine.finish(__fortune_usages__)
+async def _(event: GroupMessageEvent):
 
     gid: str = str(event.group_id)
     uid: str = str(event.user_id)
@@ -109,12 +105,11 @@ async def _(event: GroupMessageEvent, args: Annotated[Message, CommandArg()]):
 
 
 @specific_divine.handle()
-async def _(
-        matcher: Matcher, event: GroupMessageEvent, user_themes: Annotated[str, RegexStr()]
-):
-    user_theme: str = user_themes[:-2]
+async def _(matcher: Matcher, event: GroupMessageEvent):
+    user_theme = re.search(r"^[^/]\S+抽签$", str(event.message)).group()
+    user_theme = user_theme[:-2]
     if len(user_theme) < 1:
-        await matcher.finish("输入参数错误")
+        await specific_divine.finish("输入参数错误")
 
     for theme in FortuneThemesDict:
         if user_theme in FortuneThemesDict[theme]:
@@ -152,9 +147,9 @@ async def get_user_arg(matcher: Matcher, args: Annotated[str, RegexStr()]) -> st
 
 
 @change_theme.handle()
-async def _(
-        event: GroupMessageEvent, user_theme: Annotated[str, Depends(get_user_arg)]
-):
+async def _(event: GroupMessageEvent):
+    user_theme = re.search(r"^设置(.*?)签$", str(event.message)).group()
+    user_theme = user_theme[2:-1]
     gid: str = str(event.group_id)
 
     for theme in FortuneThemesDict:
@@ -168,9 +163,10 @@ async def _(
 
 
 @limit_setting.handle()
-async def _(event: GroupMessageEvent, limit: Annotated[str, Depends(get_user_arg)]):
+async def _(event: GroupMessageEvent):
     logger.warning("指定签底抽签功能将在 v0.5.x 弃用")
-
+    user_theme = re.search(r"^指定(.*?)签$", str(event.message)).group()
+    limit = user_theme[2:-1]
     gid: str = str(event.group_id)
     uid: str = str(event.user_id)
 
