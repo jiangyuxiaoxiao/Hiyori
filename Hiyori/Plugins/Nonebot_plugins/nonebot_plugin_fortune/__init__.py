@@ -19,6 +19,7 @@ from .config import FortuneConfig, FortuneThemesDict
 from .data_source import FortuneManager, fortune_manager
 
 require("nonebot_plugin_apscheduler")
+from Hiyori.Utils.Priority import Priority
 from nonebot_plugin_apscheduler import scheduler  # isort:skip
 
 __fortune_version__ = "v0.4.12"
@@ -50,23 +51,23 @@ __plugin_meta__ = PluginMetadata(
     },
 )
 
-general_divine = on_command("今日运势", aliases={"抽签", "运势"}, permission=GROUP, priority=8)
-specific_divine = on_regex(r"^[^/]\S+抽签$", permission=GROUP, priority=8)
-limit_setting = on_regex(r"^指定(.*?)签$", permission=GROUP, priority=8)
+general_divine = on_command("今日运势", aliases={"抽签", "运势"}, permission=GROUP, priority=Priority.普通优先级)
+specific_divine = on_regex(r"^[^/]\S+抽签$", permission=GROUP, priority=Priority.普通优先级)
+limit_setting = on_regex(r"^指定(.*?)签$", permission=GROUP, priority=Priority.普通优先级)
 change_theme = on_regex(
     r"^设置(.*?)签$",
     permission=SUPERUSER | GROUP_ADMIN | GROUP_OWNER,
-    priority=8,
+    priority=Priority.普通优先级,
     block=True,
 )
 reset_themes = on_regex(
     "^重置(抽签)?主题$",
     permission=SUPERUSER | GROUP_ADMIN | GROUP_OWNER,
-    priority=8,
+    priority=Priority.普通优先级,
     block=True,
 )
-themes_list = on_fullmatch("主题列表", permission=GROUP, priority=8, block=True)
-show_themes = on_regex("^查看(抽签)?主题$", permission=GROUP, priority=8, block=True)
+themes_list = on_fullmatch("主题列表", permission=GROUP, priority=Priority.普通优先级, block=True)
+show_themes = on_regex("^查看(抽签)?主题$", permission=GROUP, priority=Priority.普通优先级, block=True)
 
 
 @show_themes.handle()
