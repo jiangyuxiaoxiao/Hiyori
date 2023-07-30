@@ -21,4 +21,21 @@ def DirExist(Dir: str) -> bool:
     return True
 
 
+def JsonFileExist(Dir: str) -> bool:
+    """
+    判断json文件是否存在，不存在则初始化创建\n
+    对于多级路径，即使多级路径均不存在，也会逐级创建。
 
+    :param Dir: 路径名，需要包含对应的json文件
+    :return: 存在则返回true，实际使用中并不关心返回值
+    """
+    if os.path.exists(Dir):
+        return True
+    else:
+        folder = os.path.dirname(Dir)
+        # 不存在文件路径则先创建
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        with open(Dir, mode="w", encoding="utf-8") as file:
+            file.write("{}")
+        return False
