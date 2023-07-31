@@ -26,8 +26,11 @@ async def _():
                 result["name"] = data.name
             if hasattr(data, "description"):
                 result["description"] = data.description
+                result["descriptions"] = [des for des in data.description.split("\n") if des.strip() != ""]
             if hasattr(data, "usage"):
                 result["usage"] = data.usage
+                # 去除空格
+                result["usages"] = [use for use in data.usage.split("\n") if use.strip() != ""]
             if len(result):
                 results.append(result)
     return results

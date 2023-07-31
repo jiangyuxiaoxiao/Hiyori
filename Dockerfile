@@ -1,5 +1,4 @@
 FROM python:3.10.12-bookworm
-VOLUME /app/Hiyori/Data
 COPY ./Hiyori/ /app/Hiyori/
 COPY ./requirements.txt /app/Hiyori
 # apt换源
