@@ -121,13 +121,13 @@ async def _(event: MessageEvent):
     图片二进制数据 = await htmlRender.html_to_pic(
         html=htmlStr, type="png", viewport={"width": 2160, "height": 10},
     )
-    菜单图片 = Image.open(io.BytesIO(图片二进制数据))
-    workPath = os.getcwd()
-    图片路径 = os.path.join(workPath, Menu_PNG_Path)
-    菜单图片.save(图片路径, format="PNG")
+    # 菜单图片 = Image.open(io.BytesIO(图片二进制数据))
+    # workPath = os.getcwd()
+    # 图片路径 = os.path.join(workPath, Menu_PNG_Path)
+    # 菜单图片.save(图片路径, format="PNG")
     # 发送图片
-    ImgDirUri = pathlib.Path(图片路径).as_uri()
+    # ImgDirUri = pathlib.Path(图片路径).as_uri()
 
     message = MessageSegment.at(event.user_id)
-    message = message + MessageSegment.image(ImgDirUri, cache=False)
+    message = message + MessageSegment.image(图片二进制数据)
     await get_Menu.send(message)
