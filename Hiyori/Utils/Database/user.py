@@ -162,7 +162,7 @@ class DB_User:
     # 检查数据库中是否存在对应用户，不存在则更新对应用户
     @staticmethod
     def userExist(QQ: int):
-        """检查数据库中是否存在对应用户，不存在则更新对应用户"""
+        """检查数据库中是否存在对应用户，不存在则更新写入对应用户"""
         # 载入全局变量
         global Users_Memory
         if QQ not in Users_Memory:
@@ -173,7 +173,7 @@ class DB_User:
     # 检查数据库中是否存在对应群组，不存在则更新对应群组
     @staticmethod
     def groupExist(GroupID: int):
-        """检查数据库中是否存在对应群组，不存在则更新对应群组"""
+        """检查数据库中是否存在对应群组，不存在则更新写入对应群组"""
         # 载入全局变量
         global Groups_Memory
         if GroupID not in Groups_Memory:
@@ -184,7 +184,7 @@ class DB_User:
     # 检查数据库中是否存在对应用户，不存在也不更新
     @staticmethod
     def hasUser(QQ: int) -> bool:
-        """检查数据库中是否存在对应用户，不存在也不更新"""
+        """检查数据库中是否存在对应用户，不存在不进行更新"""
         # 载入全局变量
         global Users_Memory
         if QQ not in Users_Memory:
@@ -195,8 +195,8 @@ class DB_User:
 
     # 检查数据库中是否存在对应群组，不存在也不更新
     @staticmethod
-    def hasGroup(GroupID: int):
-        """检查数据库中是否存在对应群组，不存在也不更新"""
+    def hasGroup(GroupID: int) -> bool:
+        """检查数据库中是否存在对应群组，不存在不进行更新"""
         # 载入全局变量
         global Groups_Memory
         if GroupID not in Groups_Memory:
@@ -208,7 +208,7 @@ class DB_User:
     # 获取用户
     @staticmethod
     def getUser(QQ: int) -> User:
-        """获取用户"""
+        """获取用户，不存在则会先创建对应用户"""
         # 载入全局变量
         global Users_Memory
         DB_User.userExist(QQ)
@@ -223,7 +223,7 @@ class DB_User:
     # 获取群组
     @staticmethod
     def getGroup(GroupID: int) -> Group:
-        """获取群组"""
+        """获取群组，不存在则会先创建对应群组"""
         # 载入全局变量
         global Groups_Memory
         DB_User.groupExist(GroupID)

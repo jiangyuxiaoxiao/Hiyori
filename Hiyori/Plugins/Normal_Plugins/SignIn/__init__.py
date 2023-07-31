@@ -154,12 +154,15 @@ async def _(event: MessageEvent):
         f"当前好感度为{User.Attitude}\n"
         f"已连续签到{ComboDay}天")
     Images = len(signInImages)
-    Image = random.randint(0, Images - 1)
-    Image = signInImages[Image]
-    ImagePath = os.path.abspath(f"./Src/Image/{Image}")
-    ImagePath = pathlib.Path(ImagePath).as_uri()
-    message = message + MessageSegment.image(ImagePath)
-    await signIn.send(message)
+    if Images == 0:
+        await signIn.send(message)
+    else:
+        Image = random.randint(0, Images - 1)
+        Image = signInImages[Image]
+        ImagePath = os.path.abspath(f"./Src/Image/{Image}")
+        ImagePath = pathlib.Path(ImagePath).as_uri()
+        message = message + MessageSegment.image(ImagePath)
+        await signIn.send(message)
 
 
 @check.handle()
