@@ -13,6 +13,8 @@
       "nonebot_plugin_datastore",
       "nonebot_plugin_saa",
 
+      "Web_StaticFiles",
+      "Web_API",
 
       "Update_News",
       "Shop",
