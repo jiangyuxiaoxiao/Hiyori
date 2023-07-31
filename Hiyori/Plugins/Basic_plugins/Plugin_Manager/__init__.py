@@ -33,7 +33,7 @@ __plugin_meta__ = PluginMetadata(
         "CD_Weight": 2,
         "example": "",
         "permission": "个人：普通权限\n"
-                      "群聊：群管/萝卜管理员及以上权限\n"
+                      "群聊：群管/妃爱管理员及以上权限\n"
                       "状态查看：普通权限",
         "Keep_On": True,
         "Type": "Admin_Plugin",

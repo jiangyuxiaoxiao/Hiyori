@@ -22,7 +22,7 @@ __plugin_meta__ = PluginMetadata(
           "#关机\n",
     extra={
         "CD_Weight": 5,
-        "permission": "群管/萝卜管理员及以上权限",
+        "permission": "群管/妃爱管理员及以上权限",
         "example": "",
         "Keep_On": True,
         "Type": "Admin_Plugin",

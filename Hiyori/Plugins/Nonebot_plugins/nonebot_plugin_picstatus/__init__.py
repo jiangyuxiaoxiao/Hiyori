@@ -13,13 +13,13 @@ if config.ps_only_su:
 
 __plugin_meta__ = PluginMetadata(
     name="服务器状态",
-    description="以图片形式显示萝卜的运行状态",
+    description="以图片形式显示妃爱的运行状态",
     usage=usage,
     extra={
         "CD_Weight": 5,
         "example": "",
         "permission": "普通权限",
         "Keep_On": False,
-        "Type": "Admin_Plugin",
+        "Type": "Normal_Plugin",
     },
 )

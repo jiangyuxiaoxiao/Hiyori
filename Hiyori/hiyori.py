@@ -27,6 +27,7 @@ sys.path.append("./Plugins/Market_plugins")  # 市场插件
 sys.path.append("./Plugins/AI_plugins")  # AI生成插件
 sys.path.append("./Plugins/API_plugins")  # 弃用
 sys.path.append("./Plugins/Web_plugins")  # 后端插件
+sys.path.append("./Plugins/Zao_plugins")  # zao插件
 
 # 初始化nonebot
 nonebot.init()
