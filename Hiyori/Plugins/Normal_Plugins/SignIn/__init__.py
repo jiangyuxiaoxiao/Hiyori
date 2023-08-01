@@ -86,7 +86,7 @@ async def _(bot: Bot, event: MessageEvent):
                 url = f"127.0.0.1:{port}/Sign/Sign.html?QQ={QQ}&&Name={Name}&&LastSignDate={Ls}" \
                       f"&&Gold={User.Money / 100}" \
                       f"&&Attitude={User.Attitude}&&HasSign=true&&SignCombo={ComboDay}"
-                image = await Web2ImgBytes(url=url, width=800)
+                image = await Web2ImgBytes(url=url, width=1200)
                 msg = MessageSegment.at(QQ) + MessageSegment.image(image)
                 await signIn.send(msg)
             else:
@@ -210,14 +210,14 @@ async def _(bot: Bot, event: MessageEvent):
         Ls = User.SignInDate.split("@")[0]
         url = f"127.0.0.1:{port}/Sign/Sign.html?QQ={QQ}&&Name={Name}&&LastSignDate={Ls}" \
               f"&&AddGold={AddMoney}&&AddAttitude={AddAttitude}&&Gold={User.Money / 100}" \
-              f"&&Attitude={User.Attitude}&&HasSign=false&&SignCombo={{ComboDay}}"
+              f"&&Attitude={User.Attitude}&&HasSign=false&&SignCombo={ComboDay}"
         """
         Url示例
         http://127.0.0.1:12400/Sign/Sign.html?QQ=168934818&Name=Sora
         &&LastSignDate=2023/08/31&&AddGold=120&&Gold=420
         &&AddAttitude=20&&HasSign=true&&SignCombo=75&&Attitude=100
         """
-        image = await Web2ImgBytes(url=url, width=800)
+        image = await Web2ImgBytes(url=url, width=1200)
         msg = MessageSegment.at(QQ) + MessageSegment.image(image)
         await signIn.send(msg)
 

@@ -11,35 +11,34 @@
 
 <body>
     <div id="card">
-        <div class="px-4 py-5 sm:px-6 shadow-lg bg-cover"
-            style="background-image: url(/Sign/hiy.png);">
+        <div class="px-4 py-5 sm:px-6 shadow-lg bg-cover" style="background-image: url(/Sign/hiy.png);">
             <div class="flex-col space-y-5 ">
                 <div class="flex space-x-6 bg-white/50 rounded-xl shadow-lg">
                     <div class="flex-shrink-0">
-                        <img class="h-20 w-20 rounded-full z-30" :src="Avatar" alt="">
+                        <img class="h-40 w-40 rounded-full z-30" :src="Avatar" alt="">
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="text-2xl font-semibold text-gray-900">
+                        <p class="text-5xl font-semibold text-gray-900 my-5">
                             <a href="#" class="hover:underline">{{Name}}</a>
                         </p>
-                        <p class="text-2xl text-gray-500">
+                        <p class="text-4xl text-gray-500">
                             <a href="#" class="hover:underline">最后签到日期: {{LastSignDate}}</a>
                         </p>
                     </div>
                 </div>
-                <div class="flex-col space-y-2 bg-white/50 rounded-xl shadow-lg p-4 text-xl text-gray-900">
-                    <div class="text-2xl" v-if="!HasSign">
+                <div class="flex-col space-y-2 bg-white/50 rounded-xl shadow-lg p-4 text-2xl text-gray-900">
+                    <div class="text-4xl my-4" v-if="!HasSign">
                         签到成功~<br>
                     </div>
-                    <div class="text-2xl" v-else>
+                    <div class="text-4xl my-4" v-else>
                         你已经签到过了哦<br>
                     </div>
                     <div>
-                        <p v-if="!HasSign">好感度 + {{AddAttitude}}</p>
-                        <p v-if="!HasSign">妃爱币 + {{AddGold}}</p>
-                        <p>当前连续签到天数：{{SignCombo}}天</p>
-                        <p>当前好感度： {{Attitude}}</p>
-                        <p>当前妃爱币： {{Gold}}</p>
+                        <p class="my-2" v-if="!HasSign">好感度 + {{AddAttitude}}</p>
+                        <p class="my-2" v-if="!HasSign">妃爱币 + {{AddGold}}</p>
+                        <p class="my-2">当前连续签到天数：{{SignCombo}}天</p>
+                        <p class="my-2">当前好感度： {{Attitude}}</p>
+                        <p class="my-2">当前妃爱币： {{Gold}}</p>
                     </div>
                 </div>
             </div>
@@ -65,10 +64,10 @@
             const Gold = urlParams.get("Gold")
             const Attitude = urlParams.get("Attitude")
             const LastSignDate = urlParams.get("LastSignDate")
-            var HasSign =urlParams.get("HasSign")
-            if(HasSign == "true"){
+            var HasSign = urlParams.get("HasSign")
+            if (HasSign == "true") {
                 HasSign = true
-            }else{
+            } else {
                 HasSign = false
             }
             const SignCombo = urlParams.get("SignCombo")
