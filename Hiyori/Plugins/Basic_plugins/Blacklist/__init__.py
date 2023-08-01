@@ -19,7 +19,9 @@ __plugin_meta__ = PluginMetadata(
     name="群聊开关",
     description="开启或关闭妃爱在对应群聊的响应。呜，妃爱还不想睡觉！",
     usage="#开机\n"
-          "#关机\n",
+          "#妃爱 on\n"
+          "#关机\n"
+          "#妃爱 off\n",
     extra={
         "CD_Weight": 5,
         "permission": "群管/妃爱管理员及以上权限",
@@ -33,9 +35,9 @@ setBlacklist = on_startswith(("#设置黑名单", "#ban"), priority=Priority.系
                              permission=Hiyori_OWNER | SUPERUSER)
 unsetBlacklist = on_startswith(("#解除黑名单", "#unban"), priority=Priority.系统优先级, block=True,
                                permission=Hiyori_OWNER | SUPERUSER)
-switchOn = on_regex(r"(^#开机$)|(^#?switch\s+on$)|(^#?change\s+status\s+on$)", priority=Priority.系统优先级, block=True,
+switchOn = on_regex(r"(^#开机$)|(^#?switch\s+on$)|(^#?change\s+status\s+on$)|(^#?妃爱\s*on$)", priority=Priority.系统优先级, block=True,
                     permission=Hiyori_OWNER | SUPERUSER | GROUP_OWNER | GROUP_ADMIN | Hiyori_ADMIN)
-switchOff = on_regex(r"(^#关机$)|(^#?switch\s+off$)|(^#?change\s+status\s+off$)", priority=Priority.系统优先级,
+switchOff = on_regex(r"(^#关机$)|(^#?switch\s+off$)|(^#?change\s+status\s+off$)|(^#?妃爱\s*off$)", priority=Priority.系统优先级,
                      block=True,
                      permission=Hiyori_OWNER | SUPERUSER | GROUP_OWNER | GROUP_ADMIN | Hiyori_ADMIN)
 

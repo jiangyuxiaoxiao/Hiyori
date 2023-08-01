@@ -12,7 +12,7 @@ from nonebot.plugin import _plugins
 app = get_asgi()
 
 
-@app.get("/Menu/Plugins/data", response_class=JSONResponse)
+@app.get("/Plugins/Basic_plugins/Menu/Plugin_info", response_class=JSONResponse)
 async def _():
     results = []
     plugins = list(_plugins.values())

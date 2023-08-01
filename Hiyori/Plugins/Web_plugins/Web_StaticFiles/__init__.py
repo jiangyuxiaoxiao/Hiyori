@@ -8,6 +8,7 @@
 import os
 from nonebot import get_asgi
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 
 app = get_asgi()
 
@@ -17,3 +18,9 @@ dirs = [fir.name for fir in os.scandir(StaticDir) if fir.is_dir()]
 files = [fir.name for fir in os.scandir(StaticDir) if fir.is_dir()]
 for dirName in dirs:
     app.mount(f"/{dirName}", StaticFiles(directory=f"./{StaticDir}/{dirName}"), name=dirName)
+
+
+@app.get("/", response_class=HTMLResponse)
+async def _():
+    with open("Data/Web/index.html", encoding="utf-8", mode="r") as f:
+        return f.read()

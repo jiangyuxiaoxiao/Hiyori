@@ -13,7 +13,7 @@ from .pluginManager import pluginsManager
 app = get_asgi()
 
 
-@app.get("/Menu/Plugins/Alldata", response_class=JSONResponse)
+@app.get("/Plugins/Basic_plugins/Plugin_Manager/Plugin_info", response_class=JSONResponse)
 async def _(QQ: int, Group: int):
     results = []
     plugins = list(_plugins.values())

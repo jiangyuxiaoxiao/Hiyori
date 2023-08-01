@@ -11,6 +11,6 @@ from nonebot import get_asgi, get_driver
 app = get_asgi()
 
 
-@app.get("/Config", response_class=JSONResponse)
+@app.get("/Plugins/Web_plugins/Web_API/Config", response_class=JSONResponse)
 async def _():
     return get_driver().config.dict()
