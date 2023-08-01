@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!--suppress ALL -->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="/Src/Js/vue3.js"></script>
+    <script src="/Src/Js/tailwind.js"></script>
+</head>
+
+<body class="">
+    <div id="card">
+        <div class="px-4 py-5 sm:px-6 shadow-lg bg-cover"
+            style="background-image: url(/Sign/hiy.png);">
+            <div class="flex-col space-y-5 ">
+                <div class="flex space-x-6 bg-white/50 rounded-xl shadow-lg">
+                    <div class="flex-shrink-0">
+                        <img class="h-20 w-20 rounded-full z-30" :src="Avatar" alt="">
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-2xl font-semibold text-gray-900">
+                            <a href="#" class="hover:underline">{{Name}}</a>
+                        </p>
+                        <p class="text-2xl text-gray-500">
+                            <a href="#" class="hover:underline">最后签到日期: {{LastSignDate}}</a>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex-col space-y-2 bg-white/50 rounded-xl shadow-lg p-4 text-xl text-gray-900">
+                    <div class="text-2xl" v-if="!HasSign">
+                        签到成功~<br>
+                    </div>
+                    <div class="text-2xl" v-else>
+                        你已经签到过了哦<br>
+                    </div>
+                    <div>
+                        <p v-if="!HasSign">好感度 + {{AddAttitude}}</p>
+                        <p v-if="!HasSign">妃爱币 + {{AddGold}}</p>
+                        <p>当前连续签到天数：{{SignCombo}}天</p>
+                        <p>当前好感度： {{Attitude}}</p>
+                        <p>当前妃爱币： {{Gold}}</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+</body>
+
+</html>
+<script>
+    const { createApp } = Vue
+    createApp({
+        data() {
+            const queryString = window.location.search
+            const urlParams = new URLSearchParams(queryString)
+            const QQ = urlParams.get("QQ")
+            const Avatar = "http://q1.qlogo.cn/g?b=qq&nk=" + QQ + "&s=640"
+            const Name = urlParams.get("Name")
+            const AddGold = urlParams.get("AddGold")
+            const AddAttitude = urlParams.get("AddAttitude")
+            const Gold = urlParams.get("Gold")
+            const Attitude = urlParams.get("Attitude")
+            const LastSignDate = urlParams.get("LastSignDate")
+            var HasSign =urlParams.get("HasSign")
+            if(HasSign == "true"){
+                HasSign = true
+            }else{
+                HasSign = false
+            }
+            const SignCombo = urlParams.get("SignCombo")
+            return {
+                message: 'Hello Vue!',
+                Avatar: Avatar,
+                Name: Name,
+                QQ: QQ,
+                LastSignDate: LastSignDate,
+                AddGold: AddGold,
+                Gold: Gold,
+                AddAttitude: AddAttitude,
+                Attitude: Attitude,
+                HasSign: HasSign,
+                SignCombo: SignCombo
+            }
+        }
+    }).mount("#card")
+
+</script>

@@ -1,19 +1,24 @@
 """
 @Author: Kasugano Sora
+@Author-2: Zao
 @Github: https://github.com/jiangyuxiaoxiao
 @Date: 2023/7/1-0:22
+@LastDate: 2023/8/1-9:52
 @Desc: 签到插件
 @Ver : 1.0.0
 """
 from nonebot import on_regex
-from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, Bot
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from io import BytesIO
+from nonebot import get_driver
 from nonebot.plugin import PluginMetadata
 from nonebot.log import logger
 from Hiyori.Utils.Database import DB_User, DB_Item
 from Hiyori.Utils.Priority import Priority
-from .config import signInImages
+from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
+from Hiyori.Utils.Spider.WebShot import Web2ImgBytes
+from .config import signInImages, Mode
 import datetime
 import requests
 import random
@@ -53,7 +58,7 @@ check = on_regex(r"^#查看$", priority=Priority.普通优先级, block=False)
 
 
 @signIn.handle()
-async def _(event: MessageEvent):
+async def _(bot: Bot, event: MessageEvent):
     QQ = event.user_id
     User = DB_User.getUser(QQ)
     LastSignIn = str(User.SignInDate)
@@ -67,11 +72,29 @@ async def _(event: MessageEvent):
     elif TodayStr == str(LastSignIn.split("@")[0]):
         if len(LastSignIn.split("@")) == 2:
             ComboDay = LastSignIn.split("@")[1]
-            message = MessageSegment.at(event.user_id) + MessageSegment.text(f"你已经签到过了哦\n"
-                                                                             f"当前存款{User.Money / 100}妃爱币\n"
-                                                                             f"当前妃爱对你的好感度为{User.Attitude}\n"
-                                                                             f"已连续签到{ComboDay}天")
-            await signIn.send(message)
+            # Sora渲染
+            if Mode.Sora:
+                # 获取当前端口号
+                conf = get_driver().config.dict()
+                port = conf["port"]
+                # 获取昵称
+                if hasattr(event, "group_id"):
+                    Name = await GetQQGrouperName(bot=bot, QQ=QQ, Group=event.group_id)
+                else:
+                    Name = await GetQQStrangerName(bot=bot, QQ=QQ)
+                Ls = LastSignIn.split("@")[0]
+                url = f"127.0.0.1:{port}/Sign/Sign.html?QQ={QQ}&&Name={Name}&&LastSignDate={Ls}" \
+                      f"&&Gold={User.Money / 100}" \
+                      f"&&Attitude={User.Attitude}&&HasSign=true&&SignCombo={ComboDay}"
+                image = await Web2ImgBytes(url=url, width=800)
+                msg = MessageSegment.at(QQ) + MessageSegment.image(image)
+                await signIn.send(msg)
+            else:
+                message = MessageSegment.at(event.user_id) + MessageSegment.text(f"你已经签到过了哦\n"
+                                                                                 f"当前存款{User.Money / 100}妃爱币\n"
+                                                                                 f"当前妃爱对你的好感度为{User.Attitude}\n"
+                                                                                 f"已连续签到{ComboDay}天")
+                await signIn.send(message)
         else:
             logger.error(f"签到记录出错，记录信息{LastSignIn}，QQ={event.user_id}")
         return
@@ -149,25 +172,47 @@ async def _(event: MessageEvent):
     User.Attitude = User.Attitude + AddAttitude
     User.SignInDate = TodayStr + "@" + str(ComboDay)
     DB_User.updateUser(User)
-    Images = len(signInImages)
-    Image = random.randint(0, Images - 1)
-    Image = signInImages[Image]
-    image_path_b = os.path.abspath(f"./Src/Image/{Image}")
-    image_path_a = f"http://q1.qlogo.cn/g?b=qq&nk={QQ}&s=640"
-    positions_a = [(100, 100)]  # 图片A的位置
-    positions_text = [(420, 190), (130, 530), (110, 410), (130, 450), (130, 490), (10, 680), (130, 570)]  # 文字的位置
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    texts = [f"Accumulative check-in for {ComboDay} days", f"当前好感: {User.Attitude}", "今日签到~",f"好感度 + {AddAttitude}", f"妃爱币 + {AddMoney}", f"妃爱@2023", f"时间: {now}"]
-    font_path = f"./Data/fonts/FZSJ-QINGCRJ.ttf"
-    font_size = 36
-    font_color = (211, 64, 33)
-    resize = (200, 200)
-    ImagePath = overlay_images_with_text(image_path_b, image_path_a, positions_a, positions_text, texts, font_path, font_size,font_color,QQ,resize)
-    ImagePath = os.path.abspath(ImagePath)
-    message = MessageSegment.at(event.user_id)
-    ImagePath = pathlib.Path(ImagePath).as_uri()
-    message = message + MessageSegment.image(ImagePath)
-    await signIn.send(message)
+
+    # 图片渲染
+    if Mode.Zao:
+        # 枣子渲染
+        Images = len(signInImages)
+        Image = random.randint(0, Images - 1)
+        Image = signInImages[Image]
+        image_path_b = os.path.abspath(f"./Src/Image/{Image}")
+        image_path_a = f"http://q1.qlogo.cn/g?b=qq&nk={QQ}&s=640"
+        positions_a = [(100, 100)]  # 图片A的位置
+        positions_text = [(420, 190), (130, 530), (110, 410), (130, 450), (130, 490), (10, 680), (130, 570)]  # 文字的位置
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        texts = [f"Accumulative check-in for {ComboDay} days", f"当前好感: {User.Attitude}", "今日签到~", f"好感度 + {AddAttitude}", f"妃爱币 + {AddMoney}",
+                 f"妃爱@2023", f"时间: {now}"]
+        font_path = f"./Data/fonts/FZSJ-QINGCRJ.ttf"
+        font_size = 36
+        font_color = (211, 64, 33)
+        resize = (200, 200)
+        ImagePath = overlay_images_with_text(image_path_b, image_path_a, positions_a, positions_text, texts, font_path, font_size, font_color, QQ, resize)
+        ImagePath = os.path.abspath(ImagePath)
+        message = MessageSegment.at(event.user_id)
+        ImagePath = pathlib.Path(ImagePath).as_uri()
+        message = message + MessageSegment.image(ImagePath)
+        await signIn.send(message)
+    else:
+        # 获取当前端口号
+        conf = get_driver().config.dict()
+        port = conf["port"]
+        # 获取昵称
+        if hasattr(event, "group_id"):
+            Name = await GetQQGrouperName(bot=bot, QQ=QQ, Group=event.group_id)
+        else:
+            Name = await GetQQStrangerName(bot=bot, QQ=QQ)
+        # 处理最后签到日期
+        Ls = User.SignInDate.split("@")[0]
+        url = f"127.0.0.1:{port}/Sign/Sign.html?QQ={QQ}&&Name={Name}&&LastSignDate={Ls}" \
+              f"&&AddGold={AddMoney}&&AddAttitude={AddAttitude}&&Gold={User.Money/100}" \
+              f"&&Attitude={User.Attitude}&&HasSign=false&&SignCombo={{ComboDay}}"
+        image = await Web2ImgBytes(url=url,width=800)
+        msg = MessageSegment.at(QQ) + MessageSegment.image(image)
+        await signIn.send(msg)
 
 
 @check.handle()
@@ -197,7 +242,8 @@ def download_image(url):
     response.raise_for_status()
     return Image.open(BytesIO(response.content))
 
-def overlay_images_with_text(image_path_b, image_url_a, positions_a, positions_text, texts, font_path, font_size, font_color, QQ,resize=None):
+
+def overlay_images_with_text(image_path_b, image_url_a, positions_a, positions_text, texts, font_path, font_size, font_color, QQ, resize=None):
     img_b = Image.open(image_path_b)
 
     img_a = download_image(image_url_a)
@@ -224,6 +270,7 @@ def overlay_images_with_text(image_path_b, image_url_a, positions_a, positions_t
     img_b.save(img_b_path, format="PNG", optimize=True)
     return img_b_path
 
+
 def crop_to_circle(img):
     size = img.size
     mask = Image.new('L', size, 0)
@@ -232,6 +279,7 @@ def crop_to_circle(img):
     result = ImageOps.fit(img, mask.size, centering=(0.5, 0.5))
     result.putalpha(mask)
     return result
+
 
 def add_transparency_around_circle(img, alpha_radius):
     alpha = Image.new('L', img.size, 0)

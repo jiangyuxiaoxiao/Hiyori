@@ -6,3 +6,8 @@
 @Ver : 1.0.0
 """
 signInImages: list = ["hiy.png"]
+
+
+class Mode:
+    Zao = False
+    Sora = True
