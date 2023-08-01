@@ -9,5 +9,5 @@ signInImages: list = ["hiy.png"]
 
 
 class Mode:
-    Zao = False
-    Sora = True
+    Zao = True
+    Sora = False

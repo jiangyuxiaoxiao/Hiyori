@@ -17,7 +17,7 @@ from nonebot.log import logger
 from Hiyori.Utils.Database import DB_User, DB_Item
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
-from Hiyori.Utils.Spider.WebShot import Web2ImgBytes
+from Hiyori.Utils.Spider.WebShot import Web2ImgBytes, Web2ImgBytes_Zao
 from .config import signInImages, Mode
 import datetime
 import requests
@@ -90,10 +90,10 @@ async def _(bot: Bot, event: MessageEvent):
                 msg = MessageSegment.at(QQ) + MessageSegment.image(image)
                 await signIn.send(msg)
             else:
-                message = MessageSegment.at(event.user_id) + MessageSegment.text(f"你已经签到过了哦\n"
-                                                                                 f"当前存款{User.Money / 100}妃爱币\n"
-                                                                                 f"当前妃爱对你的好感度为{User.Attitude}\n"
-                                                                                 f"已连续签到{ComboDay}天")
+                ReImagePath = f"./Data/SignIn/{QQ}.png"
+                ReImagePath = os.path.abspath(ReImagePath)
+                ReImagePath = pathlib.Path(ReImagePath).as_uri()
+                message = MessageSegment.at(event.user_id) + "你今天已经签到过了哦~" + MessageSegment.image(ReImagePath)
                 await signIn.send(message)
         else:
             logger.error(f"签到记录出错，记录信息{LastSignIn}，QQ={event.user_id}")
@@ -175,27 +175,38 @@ async def _(bot: Bot, event: MessageEvent):
 
     # 图片渲染
     if Mode.Zao:
-        # 枣子渲染
-        Images = len(signInImages)
-        Image = random.randint(0, Images - 1)
-        Image = signInImages[Image]
-        image_path_b = os.path.abspath(f"./Src/Image/{Image}")
-        image_path_a = f"http://q1.qlogo.cn/g?b=qq&nk={QQ}&s=640"
-        positions_a = [(100, 100)]  # 图片A的位置
-        positions_text = [(420, 190), (130, 530), (110, 410), (130, 450), (130, 490), (10, 680), (130, 570)]  # 文字的位置
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        texts = [f"Accumulative check-in for {ComboDay} days", f"当前好感: {User.Attitude}", "今日签到~", f"好感度 + {AddAttitude}", f"妃爱币 + {AddMoney}",
-                 f"妃爱@2023", f"时间: {now}"]
-        font_path = f"./Data/fonts/FZSJ-QINGCRJ.ttf"
-        font_size = 36
-        font_color = (211, 64, 33)
-        resize = (200, 200)
-        ImagePath = overlay_images_with_text(image_path_b, image_path_a, positions_a, positions_text, texts, font_path, font_size, font_color, QQ, resize)
-        ImagePath = os.path.abspath(ImagePath)
-        message = MessageSegment.at(event.user_id)
-        ImagePath = pathlib.Path(ImagePath).as_uri()
-        message = message + MessageSegment.image(ImagePath)
-        await signIn.send(message)
+        # 枣子Pillow渲染
+        # Images = len(signInImages)
+        # Image = random.randint(0, Images - 1)
+        # Image = signInImages[Image]
+        # image_path_b = os.path.abspath(f"./Src/Image/{Image}")
+        # image_path_a = f"http://q1.qlogo.cn/g?b=qq&nk={QQ}&s=640"
+        # positions_a = [(100, 100)]  # 图片A的位置
+        # positions_text = [(420, 190), (130, 530), (110, 410), (130, 450), (130, 490), (10, 680), (130, 570)]  # 文字的位置
+        # now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # texts = [f"Accumulative check-in for {ComboDay} days", f"当前好感: {User.Attitude}", "今日签到~", f"好感度 + {AddAttitude}", f"妃爱币 + {AddMoney}",
+        #          f"妃爱@2023", f"时间: {now}"]
+        # font_path = f"./Data/fonts/FZSJ-QINGCRJ.ttf"
+        # font_size = 36
+        # font_color = (211, 64, 33)
+        # resize = (200, 200)
+        # ImagePath = overlay_images_with_text(image_path_b, image_path_a, positions_a, positions_text, texts, font_path, font_size, font_color, QQ, resize)
+        # ImagePath = os.path.abspath(ImagePath)
+        # message = MessageSegment.at(event.user_id)
+        # ImagePath = pathlib.Path(ImagePath).as_uri()
+        # message = message + MessageSegment.image(ImagePath)
+        # await signIn.send(message)
+        # Sora版HTML渲染
+        # 获取当前端口号
+        conf = get_driver().config.dict()
+        port = conf["port"]
+        Ls = User.SignInDate.split("@")[0]
+        url = f"127.0.0.1:{port}/ZSign/index.html?QQ={QQ}&&LastSignDate={Ls}" \
+              f"&&AddGold={AddMoney}&&AddAttitude={AddAttitude}&&Gold={User.Money / 100}" \
+              f"&&Attitude={User.Attitude}&&SignCombo={ComboDay}"
+        image = await Web2ImgBytes_Zao(url=url,QQ=str(QQ),width=1280)
+        msg = MessageSegment.at(QQ) + MessageSegment.image(image)
+        await signIn.send(msg)
     else:
         # Sora版HTML渲染
         # 获取当前端口号
@@ -244,55 +255,56 @@ async def _(event: MessageEvent):
     return
 
 
-def download_image(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return Image.open(BytesIO(response.content))
-
-
-def overlay_images_with_text(image_path_b, image_url_a, positions_a, positions_text, texts, font_path, font_size, font_color, QQ, resize=None):
-    img_b = Image.open(image_path_b)
-
-    img_a = download_image(image_url_a)
-
-    if resize:
-        img_a = img_a.resize(resize, resample=Image.LANCZOS)
-
-    overlay = Image.new("RGBA", img_b.size, (255, 255, 255, 128))
-
-    img_a = crop_to_circle(img_a)
-    img_a = add_transparency_around_circle(img_a, 50)
-
-    for position_a in positions_a:
-        overlay.paste(img_a, position_a, img_a)
-
-    draw = ImageDraw.Draw(overlay)
-    font = ImageFont.truetype(font_path, font_size) if font_path else None
-    for position_text, text in zip(positions_text, texts):
-        draw.text(position_text, text, font=font, fill=font_color)
-
-    img_b = Image.alpha_composite(img_b.convert("RGBA"), overlay)
-    img_b_path = f"./Data/SignIn/{QQ}.png"
-
-    img_b.save(img_b_path, format="PNG", optimize=True)
-    return img_b_path
-
-
-def crop_to_circle(img):
-    size = img.size
-    mask = Image.new('L', size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0) + size, fill=255)
-    result = ImageOps.fit(img, mask.size, centering=(0.5, 0.5))
-    result.putalpha(mask)
-    return result
-
-
-def add_transparency_around_circle(img, alpha_radius):
-    alpha = Image.new('L', img.size, 0)
-    draw = ImageDraw.Draw(alpha)
-    size = min(img.size)
-    draw.ellipse((0, 0, size, size), fill=255, outline=0)
-    alpha = alpha.resize(img.size, Image.LANCZOS)
-    img.putalpha(alpha)
-    return img
+# 使用 pillow库渲染签到的旧代码
+# def download_image(url):
+#     response = requests.get(url)
+#     response.raise_for_status()
+#     return Image.open(BytesIO(response.content))
+#
+#
+# def overlay_images_with_text(image_path_b, image_url_a, positions_a, positions_text, texts, font_path, font_size, font_color, QQ, resize=None):
+#     img_b = Image.open(image_path_b)
+#
+#     img_a = download_image(image_url_a)
+#
+#     if resize:
+#         img_a = img_a.resize(resize, resample=Image.LANCZOS)
+#
+#     overlay = Image.new("RGBA", img_b.size, (255, 255, 255, 128))
+#
+#     img_a = crop_to_circle(img_a)
+#     img_a = add_transparency_around_circle(img_a, 50)
+#
+#     for position_a in positions_a:
+#         overlay.paste(img_a, position_a, img_a)
+#
+#     draw = ImageDraw.Draw(overlay)
+#     font = ImageFont.truetype(font_path, font_size) if font_path else None
+#     for position_text, text in zip(positions_text, texts):
+#         draw.text(position_text, text, font=font, fill=font_color)
+#
+#     img_b = Image.alpha_composite(img_b.convert("RGBA"), overlay)
+#     img_b_path = f"./Data/SignIn/{QQ}.png"
+#
+#     img_b.save(img_b_path, format="PNG", optimize=True)
+#     return img_b_path
+#
+#
+# def crop_to_circle(img):
+#     size = img.size
+#     mask = Image.new('L', size, 0)
+#     draw = ImageDraw.Draw(mask)
+#     draw.ellipse((0, 0) + size, fill=255)
+#     result = ImageOps.fit(img, mask.size, centering=(0.5, 0.5))
+#     result.putalpha(mask)
+#     return result
+#
+#
+# def add_transparency_around_circle(img, alpha_radius):
+#     alpha = Image.new('L', img.size, 0)
+#     draw = ImageDraw.Draw(alpha)
+#     size = min(img.size)
+#     draw.ellipse((0, 0, size, size), fill=255, outline=0)
+#     alpha = alpha.resize(img.size, Image.LANCZOS)
+#     img.putalpha(alpha)
+#     return img
