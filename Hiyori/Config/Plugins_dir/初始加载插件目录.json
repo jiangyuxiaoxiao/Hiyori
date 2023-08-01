@@ -13,6 +13,8 @@
       "nonebot_plugin_datastore",
       "nonebot_plugin_saa",
 
+      "Clarifications",
+
       "Web_StaticFiles",
       "Web_API",
 

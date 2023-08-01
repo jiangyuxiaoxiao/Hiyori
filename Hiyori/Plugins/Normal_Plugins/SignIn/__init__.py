@@ -3,7 +3,7 @@
 @Author-2: Zao
 @Github: https://github.com/jiangyuxiaoxiao
 @Date: 2023/7/1-0:22
-@LastDate: 2023/8/1-9:52
+@LastDate: 2023/8/1-21:48
 @Desc: 签到插件
 @Ver : 1.0.0
 """
@@ -87,6 +87,7 @@ async def _(bot: Bot, event: MessageEvent):
                 msg = MessageSegment.at(QQ) + MessageSegment.image(image)
                 await signIn.send(msg)
             else:
+                # Zao渲染
                 ReImagePath = f"./Data/SignIn/{QQ}.png"
                 ReImagePath = os.path.abspath(ReImagePath)
                 ReImagePath = pathlib.Path(ReImagePath).as_uri()
@@ -180,9 +181,9 @@ async def _(bot: Bot, event: MessageEvent):
         url = f"127.0.0.1:{port}/ZSign/index.html?QQ={QQ}&&LastSignDate={Ls}" \
               f"&&AddGold={AddMoney}&&AddAttitude={AddAttitude}&&Gold={User.Money / 100}" \
               f"&&Attitude={User.Attitude}&&SignCombo={ComboDay}"
-        image = await Web2ImgBytes(url=url,width=1280)
-        with open(f"./Data/SignIn/{QQ}.png","wb") as f:
-            f.write(image)
+        image = await Web2ImgBytes(url=url, Path=f"./Data/SignIn/{QQ}.png", width=1280)
+        # with open(f"./Data/SignIn/{QQ}.png", "wb") as f:
+        #    f.write(image)
         msg = MessageSegment.at(QQ) + MessageSegment.image(image)
         await signIn.send(msg)
     else:
@@ -231,5 +232,3 @@ async def _(event: MessageEvent):
                                                                      f"已连续签到{ComboDay}天")
     await check.send(message)
     return
-
-
