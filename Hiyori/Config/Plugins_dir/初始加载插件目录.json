@@ -30,13 +30,16 @@
       "SignIn",
       "NickName",
 
+      "pcr-battle",
+      "pcr-gaizhang",
+      "pcr-game",
+      "pcr-search",
       "nonebot_plugin_eitherchoice",
 
 
       "nonebot_plugin_imageutils",
       "nonebot_plugin_memes",
       "nonebot_plugin_petpet",
-      "nonebot_plugin_follow_withdraw",
       "nonebot_plugin_picstatus",
       "nonebot_plugin_animeres",
       "nonebot_plugin_ygo_trade",
@@ -45,7 +48,9 @@
       "nonebot_plugin_analysis_bilibili",
       "nonebot_plugin_colormind",
       "nonebot_plugin_picmcstat",
-      "nonebot_plugin_backup"
+      "nonebot_plugin_backup",
+      "nonebot_plugin_remake",
+      "nonebot_plugin_today_waifu"
     ]
   }
 }

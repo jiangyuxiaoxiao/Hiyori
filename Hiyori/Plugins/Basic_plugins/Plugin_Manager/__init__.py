@@ -7,7 +7,7 @@
 """
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageEvent, MessageSegment
 from nonebot.adapters.onebot.v11 import GROUP_ADMIN, GROUP_OWNER
-from Hiyori.Utils.Permissions import Hiyori_OWNER, Hiyori_ADMIN
+from Hiyori.Utils.Permissions import HIYORI_OWNER, HIYORI_ADMIN
 from Hiyori.Utils.Priority import Priority
 from nonebot import on_regex
 from nonebot import get_loaded_plugins
@@ -42,7 +42,7 @@ __plugin_meta__ = PluginMetadata(
 
 # 群组插件开关
 groupPluginSwitch = on_regex(r"(^#群组开启插件)|(^#群组关闭插件)", priority=Priority.系统优先级,
-                             permission=Hiyori_OWNER | GROUP_OWNER | GROUP_ADMIN | Hiyori_ADMIN,
+                             permission=HIYORI_OWNER | GROUP_OWNER | GROUP_ADMIN | HIYORI_ADMIN,
                              block=True)
 # 个人插件开关
 userPluginSwitch = on_regex(r"(^#个人开启插件)|(^#个人关闭插件)", priority=Priority.系统优先级,
@@ -53,7 +53,7 @@ groupPluginStatus = on_regex(r"^#群组插件状态$", priority=Priority.系统�
 userPluginStatus = on_regex(r"^#个人插件状态$", priority=Priority.系统优先级, block=True)
 # 群组开启黑/白名单
 groupPluginWhiteList = on_regex(r"(^#群组插件白名单模式$)|(^#群组插件黑名单模式$)", priority=Priority.系统优先级,
-                                permission=Hiyori_OWNER | GROUP_OWNER | GROUP_ADMIN | Hiyori_ADMIN,
+                                permission=HIYORI_OWNER | GROUP_OWNER | GROUP_ADMIN | HIYORI_ADMIN,
                                 block=True)
 # 个人开启黑/白名单
 userPluginWhiteList = on_regex(r"(^#个人插件白名单模式$)|(^#个人插件黑名单模式$)", priority=Priority.系统优先级,

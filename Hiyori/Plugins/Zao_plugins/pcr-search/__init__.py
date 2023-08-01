@@ -25,7 +25,7 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     extra={
         "version": __search_version__,
-        "CD_Weight": 0,
+        "CD_Weight": 1,
         "example": "角色简介",
         "permission": "角色简介/角色技能/角色专武/角色羁绊 普通权限",
         "Keep_On": False,

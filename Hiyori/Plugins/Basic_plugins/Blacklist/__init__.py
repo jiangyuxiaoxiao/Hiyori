@@ -10,7 +10,7 @@ from .hook import check_group_switch  # 群开关检查
 from nonebot import on_startswith, on_regex
 from nonebot.adapters.onebot.v11 import Event, GroupMessageEvent, GROUP_OWNER, GROUP_ADMIN
 from Hiyori.Utils.Database import DB_User
-from Hiyori.Utils.Permissions import Hiyori_OWNER, Hiyori_ADMIN
+from Hiyori.Utils.Permissions import HIYORI_OWNER, HIYORI_ADMIN
 from Hiyori.Utils.Priority import Priority
 from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
@@ -32,14 +32,14 @@ __plugin_meta__ = PluginMetadata(
 )
 
 setBlacklist = on_startswith(("#设置黑名单", "#ban"), priority=Priority.系统优先级, block=True,
-                             permission=Hiyori_OWNER | SUPERUSER)
+                             permission=HIYORI_OWNER | SUPERUSER)
 unsetBlacklist = on_startswith(("#解除黑名单", "#unban"), priority=Priority.系统优先级, block=True,
-                               permission=Hiyori_OWNER | SUPERUSER)
+                               permission=HIYORI_OWNER | SUPERUSER)
 switchOn = on_regex(r"(^#开机$)|(^#?switch\s+on$)|(^#?change\s+status\s+on$)|(^#?妃爱\s*on$)", priority=Priority.系统优先级, block=True,
-                    permission=Hiyori_OWNER | SUPERUSER | GROUP_OWNER | GROUP_ADMIN | Hiyori_ADMIN)
+                    permission=HIYORI_OWNER | SUPERUSER | GROUP_OWNER | GROUP_ADMIN | HIYORI_ADMIN)
 switchOff = on_regex(r"(^#关机$)|(^#?switch\s+off$)|(^#?change\s+status\s+off$)|(^#?妃爱\s*off$)", priority=Priority.系统优先级,
                      block=True,
-                     permission=Hiyori_OWNER | SUPERUSER | GROUP_OWNER | GROUP_ADMIN | Hiyori_ADMIN)
+                     permission=HIYORI_OWNER | SUPERUSER | GROUP_OWNER | GROUP_ADMIN | HIYORI_ADMIN)
 
 
 # config = get_driver().config  # 获取nb env文件属性的方法

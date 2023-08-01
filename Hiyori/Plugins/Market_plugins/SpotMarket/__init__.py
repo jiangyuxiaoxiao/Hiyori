@@ -10,7 +10,7 @@ from nonebot import on_regex
 from nonebot.plugin import PluginMetadata
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Spider.SpotPrice import *
-from Hiyori.Utils.Permissions import Hiyori_OWNER
+from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Database import DB_User, DB_Spot
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 import decimal

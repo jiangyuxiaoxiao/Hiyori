@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <!--suppress ALL -->
+<!-- 设计理想宽度 1200px -->
 <html lang="en">
 
 <head>
@@ -57,7 +58,7 @@
             const queryString = window.location.search
             const urlParams = new URLSearchParams(queryString)
             const QQ = urlParams.get("QQ")
-            const Avatar = "http://q1.qlogo.cn/g?b=qq&nk=" + QQ + "&s=640"
+            const Avatar = "https://q1.qlogo.cn/g?b=qq&nk=" + QQ + "&s=640"
             const Name = urlParams.get("Name")
             const AddGold = urlParams.get("AddGold")
             const AddAttitude = urlParams.get("AddAttitude")

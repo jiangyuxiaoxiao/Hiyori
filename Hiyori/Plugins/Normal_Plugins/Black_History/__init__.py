@@ -8,7 +8,7 @@
 from nonebot import on_regex
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Bot, GROUP_ADMIN, GROUP_OWNER, MessageSegment
 from nonebot.permission import SUPERUSER
-from Hiyori.Utils.Permissions import Hiyori_OWNER, Hiyori_ADMIN
+from Hiyori.Utils.Permissions import HIYORI_OWNER, HIYORI_ADMIN
 from nonebot.typing import T_State
 from Hiyori.Utils.Message.Forward_Message import Nodes
 from nonebot.plugin import PluginMetadata

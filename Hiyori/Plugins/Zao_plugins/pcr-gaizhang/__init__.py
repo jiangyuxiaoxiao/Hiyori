@@ -23,7 +23,7 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     extra={
         "version": __gaizhang_version__,
-        "CD_Weight": 0,
+        "CD_Weight": 1,
         "example": "盖章",
         "permission": "盖章/收集册 普通权限",
         "Keep_On": False,

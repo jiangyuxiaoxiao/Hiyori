@@ -8,7 +8,7 @@
 import time
 import asyncio
 from Hiyori.Utils.Database import DB_User
-from Hiyori.Utils.Permissions import Hiyori_OWNER
+from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Priority import Priority
 from nonebot.permission import SUPERUSER
 from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent, ActionFailed
@@ -16,7 +16,7 @@ from nonebot import on_regex
 from nonebot.log import logger
 import re
 
-broadcast = on_regex(r"^#broadcast", permission=SUPERUSER | Hiyori_OWNER, priority=Priority.系统优先级, block=True)
+broadcast = on_regex(r"^#broadcast", permission=SUPERUSER | HIYORI_OWNER, priority=Priority.系统优先级, block=True)
 
 
 @broadcast.handle()

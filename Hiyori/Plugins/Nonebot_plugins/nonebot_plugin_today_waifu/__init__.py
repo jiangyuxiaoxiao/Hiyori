@@ -34,7 +34,7 @@ __plugin_meta__ = PluginMetadata(
     extra={
         "author": "glamorgan9826",
         "version": __waifu_version__,
-        "CD_Weight": 0,
+        "CD_Weight": 1,
         "example": "今日老婆",
         "permission": "今日老婆 普通权限\n"
                       "(刷新/重置)今日老婆：群管权限",

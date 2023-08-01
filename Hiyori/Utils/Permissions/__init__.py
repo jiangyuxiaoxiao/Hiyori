@@ -7,9 +7,10 @@
 """
 from nonebot.adapters import Bot, Event
 from Hiyori.Utils.Database import DB_User
+from nonebot.permission import Permission
 
 
-def Hiyori_OWNER(bot: Bot, event: Event) -> bool:
+def _HIYORI_OWNER(bot: Bot, event: Event) -> bool:
     """
     对应权限级Permission=0
     """
@@ -20,7 +21,7 @@ def Hiyori_OWNER(bot: Bot, event: Event) -> bool:
     return False
 
 
-def Hiyori_ADMIN(bot: Bot, event: Event) -> bool:
+def _HIYORI_ADMIN(bot: Bot, event: Event) -> bool:
     """
     对应权限级Permission=0 or 1
     """
@@ -29,3 +30,7 @@ def Hiyori_ADMIN(bot: Bot, event: Event) -> bool:
         if DB_User.isAdmin(QQ):
             return True
     return False
+
+
+HIYORI_OWNER = Permission(_HIYORI_OWNER)
+HIYORI_ADMIN = Permission(_HIYORI_ADMIN)

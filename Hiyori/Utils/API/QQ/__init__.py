@@ -11,11 +11,11 @@ from Hiyori.Utils.Database import DB_User
 
 async def GetQQGrouperName(bot: Bot, QQ: int, Group: int, no_cache: bool = False) -> str:
     """
-    获取Bot所在QQ群内群员姓名
+    获取Bot所在QQ群内群员姓名，若用户设置了昵称则返回昵称，否则返回群内名称。若设置了群名片则返回群名片，否则返回QQ昵称。
 
-    :param bot:
-    :param QQ:
-    :param Group:
+    :param bot: onebot实例
+    :param QQ: QQ号
+    :param Group: 群号
     :param no_cache: 是否使用缓存
     :return:
     """
@@ -24,21 +24,18 @@ async def GetQQGrouperName(bot: Bot, QQ: int, Group: int, no_cache: bool = False
     if User.NickName != "":
         return User.NickName
     Info = await bot.get_group_member_info(group_id=Group, user_id=QQ, no_cache=no_cache)
-    if QQ == 2327382838:
-        return "魔法少女落漪漓"
+    if Info["card"] == "":
+        return Info["nickname"]
     else:
-        if Info["card"] == "":
-            return Info["nickname"]
-        else:
-            return Info["card"]
+        return Info["card"]
 
 
 async def GetQQStrangerName(bot: Bot, QQ: int, no_cache: bool = False) -> str:
     """
     获取陌生人姓名
 
-    :param bot:
-    :param QQ:
+    :param bot: onebot实例
+    :param QQ: QQ号
     :param no_cache: 是否使用缓存
     :return:
     """
@@ -46,3 +43,25 @@ async def GetQQStrangerName(bot: Bot, QQ: int, no_cache: bool = False) -> str:
     Info = await bot.get_stranger_info(user_id=QQ, no_cache=no_cache)
     return Info["nickname"]
 
+
+def GetQQAvatarUrl(QQ: int, Size: int = 640) -> str:
+    """
+    获取QQ头像Url，默认大小640*640。
+
+    :param QQ: QQ号
+    :param Size: 枚举整数，可取值：100、640
+    :return: Url
+    """
+    return f"https://q1.qlogo.cn/g?b=qq&nk={QQ}&s={Size}"
+
+
+def GetGroupAvatarUrl(Group: int, Size: int = 640) -> str:
+    """
+    获取群头像Url，默认大小640*640。
+
+
+    :param Group: 群号
+    :param Size: 枚举整数，可取值：100、640
+    :return: Url
+    """
+    return f"https://p.qlogo.cn/gh/{Group}/{Group}/{Size}"

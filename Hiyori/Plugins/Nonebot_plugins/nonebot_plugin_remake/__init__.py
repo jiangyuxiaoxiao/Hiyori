@@ -33,7 +33,7 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     extra={
         "version": __remake_version__,
-        "CD_Weight": 0,
+        "CD_Weight": 2,
         "example": "#remake",
         "permission": "#remake 普通权限",
         "Keep_On": False,

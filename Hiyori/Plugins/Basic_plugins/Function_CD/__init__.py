@@ -7,7 +7,7 @@
 """
 from .hook import 功能调用CD检查
 from nonebot.adapters.onebot.v11 import Event, Bot
-from Hiyori.Utils.Permissions import Hiyori_OWNER
+from Hiyori.Utils.Permissions import HIYORI_OWNER
 from nonebot.permission import SUPERUSER
 from nonebot import on_regex
 from Hiyori.Utils.Database import DB_User
@@ -28,7 +28,7 @@ __plugin_meta__ = PluginMetadata(
 )
 
 changeCD = on_regex(r"(^#?change\s+cd)|(^#?CD修改)|(^#?cd修改)", priority=Priority.系统优先级, block=True,
-                    permission=Hiyori_OWNER | SUPERUSER)
+                    permission=HIYORI_OWNER | SUPERUSER)
 
 
 @changeCD.handle()

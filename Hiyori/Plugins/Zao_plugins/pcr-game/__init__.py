@@ -23,7 +23,7 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     extra={
         "version": __game_version__,
-        "CD_Weight": 0,
+        "CD_Weight": 1,
         "example": "猜头像",
         "permission": "猜头像/猜角色 普通权限",
         "Keep_On": False,
