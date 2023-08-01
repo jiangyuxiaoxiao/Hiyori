@@ -24,23 +24,3 @@ async def Web2ImgBytes(url: str, width=2160) -> bytes:
         screenshot_bytes = await page.screenshot(full_page=True)
         await browser.close()
     return screenshot_bytes
-
-
-async def Web2ImgBytes_Zao(url: str,QQ:str,width=2160,) -> bytes:
-    """
-    将对应网页截屏为图片
-
-    :param width: 截取宽度
-    :param url: 网址
-    :return: 图片bytes
-    """
-    async with async_playwright() as playwright:
-        chromium = playwright.chromium
-        browser = await chromium.launch()
-        page = await browser.new_page(viewport={"width": width, "height": 10}, screen={"width": width, "height": 10})
-        await page.goto(url)
-        screenshot_bytes = await page.screenshot(full_page=True)
-        with open(f"./Data/SignIn/{QQ}.png","wb") as f:
-            f.write(screenshot_bytes)
-        await browser.close()
-    return screenshot_bytes
