@@ -24,3 +24,7 @@
 /node_modules/
 /tailwind.config.js
 /Hiyori/Plugins/Debug_plugins/
+/Hiyori/Utils/Message/VitsVoice/
+/Hiyori/Utils/API/Huawei/
+/WindowsService/Qsign.cmd
+/WindowsService/DDNS.cmd

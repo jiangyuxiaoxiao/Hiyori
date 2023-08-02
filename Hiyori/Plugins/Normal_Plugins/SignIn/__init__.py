@@ -15,6 +15,8 @@ from nonebot.log import logger
 from Hiyori.Utils.Database import DB_User, DB_Item
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
+from Hiyori.Utils.File import DirExist
+from Hiyori.Utils.Message.Image import ImageMessage
 from Hiyori.Utils.Spider.WebShot import Web2ImgBytes
 from .config import signInImages, Mode
 import datetime
@@ -53,6 +55,8 @@ __plugin_meta__ = PluginMetadata(
 signIn = on_regex(r"^#?签到$", priority=Priority.普通优先级, block=False)
 check = on_regex(r"^#查看$", priority=Priority.普通优先级, block=False)
 
+DirExist("./Data/SignIn")
+
 
 @signIn.handle()
 async def _(bot: Bot, event: MessageEvent):
@@ -88,10 +92,8 @@ async def _(bot: Bot, event: MessageEvent):
                 await signIn.send(msg)
             else:
                 # Zao渲染
-                ReImagePath = f"./Data/SignIn/{QQ}.png"
-                ReImagePath = os.path.abspath(ReImagePath)
-                ReImagePath = pathlib.Path(ReImagePath).as_uri()
-                message = MessageSegment.at(event.user_id) + "你今天已经签到过了哦~" + MessageSegment.image(ReImagePath)
+                ReImage = ImageMessage(f"./Data/SignIn/{QQ}.png")
+                message = MessageSegment.at(event.user_id) + "你今天已经签到过了哦~" + ReImage
                 await signIn.send(message)
         else:
             logger.error(f"签到记录出错，记录信息{LastSignIn}，QQ={event.user_id}")

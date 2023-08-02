@@ -1,2 +1,2 @@
-cd .\Cqhttp\Cqhttp-Hiyori-1\
+cd .\Cqhttp\Cqhttp-Hiyori-0\
 .\cqhttp.exe
