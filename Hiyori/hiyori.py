@@ -37,9 +37,14 @@ app = nonebot.get_asgi()
 driver = nonebot.get_driver()
 driver.register_adapter(ONEBOT_V11Adapter)
 
+# 根据初始化配置选择插件目录进行初始化
+configDict = driver.config.dict()
+if "plugin_mode" not in configDict.keys():
+    plugin_dir = "Data/Plugins_dir/plugin.dev.json"
+else:
+    plugin_mode = configDict["plugin_mode"]
+    plugin_dir = "Data/Plugins_dir/plugin." + plugin_mode + ".json"
 
-# 根据插件自定义目录进行初始化
-plugin_dir = "Data/Plugins_dir/初始加载插件目录.json"
 with open(plugin_dir, encoding="utf-8") as plg_dir:
     plugins = json.load(plg_dir)
     plugins = plugins["Plugin"]["Dir"]
@@ -53,10 +58,9 @@ with open(plugin_dir, encoding="utf-8") as plg_dir:
 
 # bot开始运行时间
 endTime = time.time_ns()
-Atri_time = (endTime - startTime)/1000000000
+Atri_time = (endTime - startTime) / 1000000000
 Atri_time = round(Atri_time, 3)
 plugin_number = len(_plugins.values())
 logger.success(f"アトリは、高性能ですから！")
 logger.success(f"启动用时{Atri_time}s，共加载插件{plugin_number}个。")
 nonebot.run(app="__mp_main__:app")
-
