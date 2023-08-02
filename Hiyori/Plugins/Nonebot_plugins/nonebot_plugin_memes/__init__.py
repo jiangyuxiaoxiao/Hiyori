@@ -24,7 +24,7 @@ from nonebot.adapters.onebot.v11.permission import (
 from Hiyori.Utils.Priority import Priority
 
 require("nonebot_plugin_imageutils")
-from Hiyori.Plugins.Basic_plugins.nonebot_plugin_imageutils import BuildImage, Text2Image
+from nonebot_plugin_imageutils import BuildImage, Text2Image
 
 from .utils import Meme
 from .depends import regex

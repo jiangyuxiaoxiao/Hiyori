@@ -76,7 +76,7 @@ async def _(img: Message = Arg("img")):
     # 检查文件夹是否存在，不存在则创建
     DirExist("./Data/Clarifications/image")
     fromImage = f"./Data/Clarifications/image/{Time}.jpg"  # 超分原图
-    toImage = os.path.abspath(f"./Data/Clarifications/image/{Time}.png")  # 超分后保存路径
+    toImage = f"./Data/Clarifications/image/{Time}.png"  # 超分后保存路径
     with open(fromImage, mode="wb") as f:
         f.write(res.content)
     # 异步执行超分程序调用指令

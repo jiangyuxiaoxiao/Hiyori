@@ -5,3 +5,4 @@
 @Desc: 特殊消息处理封装
 @Ver : 1.0.0
 """
+from .Image import ImageMessage, get_message_img
