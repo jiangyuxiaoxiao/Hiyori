@@ -39,7 +39,7 @@ driver.register_adapter(ONEBOT_V11Adapter)
 
 
 # 根据插件自定义目录进行初始化
-plugin_dir = "Config/Plugins_dir/初始加载插件目录.json"
+plugin_dir = "Data/Plugins_dir/初始加载插件目录.json"
 with open(plugin_dir, encoding="utf-8") as plg_dir:
     plugins = json.load(plg_dir)
     plugins = plugins["Plugin"]["Dir"]
