@@ -37,6 +37,7 @@ FortuneThemesDict: Dict[str, List[str]] = {
     "touhou_lostword": ["东方归言录", "东方lostword", "touhou lostword"],
     "touhou_old": ["旧东方", "旧版东方", "老东方", "老版东方", "经典东方"],
     "warship_girls_r": ["战舰少女R", "舰r", "舰R", "wsgr", "WSGR", "战舰少女r"],
+    "loyi": ["落忆", "luoyi", "loyi", "luoyily", "落漪漓"]
 }
 
 
@@ -72,6 +73,7 @@ class ThemesFlagConfig(BaseModel, extra=Extra.ignore):
     touhou_lostword_flag: bool = True
     touhou_old_flag: bool = True
     warship_girls_r_flag: bool = True
+    loyi_flag: bool = True
 
     @root_validator
     def check_all_disabled(cls, values) -> None:
@@ -127,7 +129,7 @@ async def fortune_check() -> None:
 		Try to get the latest copywriting from the repository.
 	"""
     copywriting_path: Path = (
-        fortune_config.fortune_path / "fortune" / "copywriting.json"
+            fortune_config.fortune_path / "fortune" / "copywriting.json"
     )
     if not copywriting_path.parent.exists():
         copywriting_path.parent.mkdir(parents=True, exist_ok=True)
@@ -262,7 +264,7 @@ def group_rules_transfer(fortune_setting_dir: Path, group_rules_dir: Path) -> bo
 
 
 def specific_rules_transfer(
-    fortune_setting_dir: Path, specific_rules_dir: Path
+        fortune_setting_dir: Path, specific_rules_dir: Path
 ) -> bool:
     """
     Transfer the specific_rule in fortune_setting.json to specific_rules.json

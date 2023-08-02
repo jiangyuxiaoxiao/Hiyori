@@ -23,7 +23,7 @@ def HiyoriShopInit():
     hiyoriShop.addItem(itemName="芳乃断签保护卡",
                        description="神社祈福！断签保护卡，当断签时间不超过5天时自动消耗。", price=500,
                        need_attitude=500, functions={})
-    hiyoriShop.addItem(itemName="妃爱断签保护卡",
+    hiyoriShop.addItem(itemName="穹妹断签保护卡",
                        description="妹妹赛高！断签保护卡，断签时自动消耗。", price=2000,
                        need_attitude=1500, functions={})
     Shops.addShop(hiyoriShop)

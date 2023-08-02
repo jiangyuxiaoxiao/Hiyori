@@ -38,21 +38,17 @@ async def _(bot: Bot, event: MessageEvent):
 @WhereIsMom.got("message")
 async def _(bot: Bot, event: MessageEvent):
     superusers = get_driver().config.superusers
-    message = str(event.raw_message)
-    message = re.sub(r"^#?对话开发者", "", message).lstrip()
-    # 获取用户消息
-
     if isinstance(event, GroupMessageEvent):
         Info = await GetQQGrouperName(bot=bot, QQ=event.user_id, Group=event.group_id)
         group_info = await bot.get_group_info(group_id=event.group_id)
         group_name = group_info["group_name"]
         message = f"来自群{group_name}({event.group_id})\n" \
                   f"用户{Info}({event.user_id})的消息：\n\n" \
-                  f"{message}"
+                  f"{event.raw_message}"
     else:
         Info = await GetQQStrangerName(bot=bot, QQ=event.user_id)
-        message = f"来自用户{Info}({event.user_id})的消息：\n" \
-                  f"{message}"
+        message = f"来自用户{Info}({event.user_id})的消息：\n\n" \
+                  f"{event.raw_message}"
     for superuser in superusers:
         await bot.send_private_msg(user_id=int(superuser), message=message)
     await WhereIsMom.send("已将消息转述给开发者~")

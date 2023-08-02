@@ -13,8 +13,6 @@
       "nonebot_plugin_datastore",
       "nonebot_plugin_saa",
 
-      "Vits",
-      "ChatGLM2",
       "Clarifications",
 
       "Web_StaticFiles",
@@ -36,13 +34,6 @@
       "Poke",
       "SignIn",
       "NickName",
-
-      "Ohayou",
-      "OHM_Status",
-      "DDNS",
-      "Luoyi",
-      "Doudou",
-      "Sora",
 
       "nonebot_plugin_eitherchoice",
       "nonebot_plugin_imageutils",

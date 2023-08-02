@@ -117,7 +117,7 @@ async def _(bot: Bot, event: MessageEvent):
             # 提取物品数量
             亚托莉断签保护卡 = DB_Item.getUserItem(QQ=event.user_id, ItemName="亚托莉断签保护卡")
             芳乃断签保护卡 = DB_Item.getUserItem(QQ=event.user_id, ItemName="芳乃断签保护卡")
-            妃爱断签保护卡 = DB_Item.getUserItem(QQ=event.user_id, ItemName="妃爱断签保护卡")
+            穹妹断签保护卡 = DB_Item.getUserItem(QQ=event.user_id, ItemName="穹妹断签保护卡")
             # 判断断签卡
             "数据库日期存储格式示范 2023-6-11@2"
             LastSignInStr = LastSignIn.split("@")[0]
@@ -138,9 +138,9 @@ async def _(bot: Bot, event: MessageEvent):
                 elif 芳乃断签保护卡.Quantity >= 1:
                     芳乃断签保护卡.Quantity -= 1
                     芳乃断签保护卡.save()
-                elif 妃爱断签保护卡.Quantity >= 1:
-                    妃爱断签保护卡.Quantity -= 1
-                    妃爱断签保护卡.save()
+                elif 穹妹断签保护卡.Quantity >= 1:
+                    穹妹断签保护卡.Quantity -= 1
+                    穹妹断签保护卡.save()
                 else:
                     ComboDay = 0
             # 当断签不超过5天
@@ -148,16 +148,16 @@ async def _(bot: Bot, event: MessageEvent):
                 if 芳乃断签保护卡.Quantity >= 1:
                     芳乃断签保护卡.Quantity -= 1
                     芳乃断签保护卡.save()
-                elif 妃爱断签保护卡.Quantity >= 1:
-                    妃爱断签保护卡.Quantity -= 1
-                    妃爱断签保护卡.save()
+                elif 穹妹断签保护卡.Quantity >= 1:
+                    穹妹断签保护卡.Quantity -= 1
+                    穹妹断签保护卡.save()
                 else:
                     ComboDay = 0
             # 断签超过5天
             else:
-                if 妃爱断签保护卡.Quantity >= 1:
-                    妃爱断签保护卡.Quantity -= 1
-                    妃爱断签保护卡.save()
+                if 穹妹断签保护卡.Quantity >= 1:
+                    穹妹断签保护卡.Quantity -= 1
+                    穹妹断签保护卡.save()
                 else:
                     ComboDay = 0
     AddMoney = int(random.randint(日收入 - 收入波动幅度, 日收入 + 收入波动幅度) * (1 + 收入福利系数) * min(
