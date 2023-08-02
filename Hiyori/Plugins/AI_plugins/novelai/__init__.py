@@ -26,7 +26,7 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     extra={
         "version": __novelai_version__,
-        "CD_Weight": 0,
+        "CD_Weight": 2,
         "example": "二次元的我",
         "permission": "普通权限",
         "Keep_On": False,
