@@ -37,13 +37,15 @@ app = nonebot.get_asgi()
 driver = nonebot.get_driver()
 driver.register_adapter(ONEBOT_V11Adapter)
 
-# 根据初始化配置选择插件目录进行初始化
+# 根据初始化配置选择插件目录配置文件进行初始化
+# 默认配置文件路径为./plugin.dev.json
+# 根据在.env中的环境设置，进行更新
 configDict = driver.config.dict()
-if "plugin_mode" not in configDict.keys():
-    plugin_dir = "Data/Plugins_dir/plugin.dev.json"
+if "environment" not in configDict.keys():
+    plugin_dir = "plugin.dev.json"
 else:
-    plugin_mode = configDict["plugin_mode"]
-    plugin_dir = "Data/Plugins_dir/plugin." + plugin_mode + ".json"
+    environment = configDict["environment"]
+    plugin_dir = "plugin." + environment + ".json"
 
 with open(plugin_dir, encoding="utf-8") as plg_dir:
     plugins = json.load(plg_dir)
