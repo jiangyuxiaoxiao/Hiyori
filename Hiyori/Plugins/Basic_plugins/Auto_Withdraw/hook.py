@@ -6,7 +6,7 @@
 @Ver : 1.0.0
 """
 import asyncio
-from nonebot.adapters.onebot.v11 import Bot, Event, MessageEvent
+from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
 from nonebot import get_bot
 from nonebot.matcher import Matcher
 from nonebot.message import run_preprocessor
@@ -38,22 +38,30 @@ async def withdrawSelfMessage(bot: Bot, exception: Exception, api: str, data: di
 
 # 当事件响应器运行前触发，若设置了定时则撤回目标的消息
 @run_preprocessor
-async def withdrawTargetMessage(event: MessageEvent, matcher: Matcher):
-    if hasattr(event, "group_id"):
-        GroupID: str = str(event.group_id)
-        # 若群组事件默认撤回：
-        if autoWithdrawConfig.defaultOn:
-            # 有群组配置
-            if GroupID in autoWithdrawConfig.groupConfig.keys():
-                GroupConfig = autoWithdrawConfig.groupConfig[GroupID]
-                # 群组未开启
-                if GroupConfig["on"]:
-                    bot = get_bot(str(event.self_id))
-                    asyncio.create_task(withDrawMessage(bot, event.message_id, GroupConfig["time"]))
-            # 无群组配置
-            else:
-                bot = get_bot(str(event.self_id))
-                asyncio.create_task(withDrawMessage(bot, event.message_id, autoWithdrawConfig.defaultWithdrawTime))
+async def withdrawTargetMessage(bot: Bot, event: GroupMessageEvent):
+    # 判断能否撤回目标发言
+    selfInfo = await bot.get_group_member_info(group_id=event.group_id, user_id=event.self_id, no_cache=False)
+    selfRole = selfInfo["role"]
+    if selfRole not in ("owner", "admin"):
+        return
+    targetInfo = await bot.get_group_member_info(group_id=event.group_id, user_id=event.user_id, no_cache=False)
+    targetRole = targetInfo["role"]
+    if targetRole == "owner":
+        return
+    if targetRole == "admin" and selfRole != "owner":
+        return
+    GroupID: str = str(event.group_id)
+    # 若群组事件默认撤回：
+    if autoWithdrawConfig.defaultOn:
+        # 有群组配置
+        if GroupID in autoWithdrawConfig.groupConfig.keys():
+            GroupConfig = autoWithdrawConfig.groupConfig[GroupID]
+            # 群组未开启
+            if GroupConfig["on"]:
+                asyncio.create_task(withDrawMessage(bot, event.message_id, GroupConfig["time"]))
+        # 无群组配置
+        else:
+            asyncio.create_task(withDrawMessage(bot, event.message_id, autoWithdrawConfig.defaultWithdrawTime))
 
 
 # 定时撤回执行函数
