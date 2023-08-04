@@ -49,17 +49,15 @@ async def withdrawTargetMessage(bot: Bot, event: GroupMessageEvent):
     if targetRole == "admin" and selfRole != "owner":
         return
     GroupID: str = str(event.group_id)
-    # 若群组事件默认撤回：
-    if autoWithdrawConfig.defaultOn:
-        # 有群组配置
-        if GroupID in autoWithdrawConfig.groupConfig.keys():
-            GroupConfig = autoWithdrawConfig.groupConfig[GroupID]
-            # 群组未开启
-            if GroupConfig["on"]:
-                asyncio.create_task(withDrawMessage(bot, event.message_id, GroupConfig["time"]))
-        # 无群组配置
-        else:
-            asyncio.create_task(withDrawMessage(bot, event.message_id, autoWithdrawConfig.defaultWithdrawTime))
+    # 有群组配置
+    if GroupID in autoWithdrawConfig.groupConfig.keys():
+        GroupConfig = autoWithdrawConfig.groupConfig[GroupID]
+        # 群组开启撤回
+        if GroupConfig["on"]:
+            asyncio.create_task(withDrawMessage(bot, event.message_id, GroupConfig["time"]))
+    # 无群组配置，默认撤回
+    elif autoWithdrawConfig.defaultOn:
+        asyncio.create_task(withDrawMessage(bot, event.message_id, autoWithdrawConfig.defaultWithdrawTime))
 
 
 # 定时撤回执行函数
