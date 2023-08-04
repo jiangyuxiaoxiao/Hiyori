@@ -24,7 +24,14 @@ async def _(bot: Bot):
     if QQ not in multiBotConfig.priority:
         multiBotConfig.priority.append(QQ)
         multiBotConfig.dump()
-        logger.debug(f"QQBot:{QQ}已连接，添加到Bot响应序列中")
+        logger.debug(f"【MultiBot_Support】QQBot:{QQ}已连接，添加到Bot响应序列中")
+    # 导入bot所在群聊
+    multiBotConfig.groupSet[QQ] = set()
+    groupList = await bot.get_group_list()
+
+    for groupInfo in groupList:
+        multiBotConfig.groupSet[QQ].add(str(groupInfo["group_id"]))
+    logger.debug(f"【MultiBot_Support】QQBot:{QQ}已连接，已注册Bot所在群聊")
 
 
 # 在事件开始响应时检查规则，中断不响应bot的流程
@@ -32,13 +39,14 @@ async def _(bot: Bot):
 async def _(event: Event):
     if hasattr(event, "group_id"):
         GroupID: str = str(event.group_id)
+        multiBotConfig.groupSet[str(event.self_id)].add(GroupID)  # 添加到set中
         bots = get_bots().keys()  # bot的QQ列表，str格式
         # 群组不在特殊规则中
         if GroupID not in multiBotConfig.rule.keys():
-            # 遍历响应优先序列，按顺序找到第一个已开启的QQ
+            # 遍历响应优先序列，按顺序找到第一个已开启且在本群聊中的QQ
             for QQ in multiBotConfig.priority:
-                # 对应QQ已开启
-                if QQ in bots:
+                # 对应Bot已开启 而且这个Bot在群聊中
+                if (QQ in bots) and (GroupID in multiBotConfig.groupSet[QQ]):
                     if str(event.self_id) != QQ:
                         raise IgnoredException("多Bot响应屏蔽")
                     else:
@@ -47,4 +55,7 @@ async def _(event: Event):
             # 本bot与该群组响应规则不匹配，且响应规则的bot已开启
             ruleID = multiBotConfig.rule[GroupID]
             if (int(ruleID) != event.self_id) and (ruleID in bots):
-                raise IgnoredException("多Bot响应屏蔽")
+                # 对应规则的Bot在群聊中
+                if ruleID in multiBotConfig.groupSet.keys():
+                    if str(event.group_id) in multiBotConfig.groupSet[ruleID]:
+                        raise IgnoredException("多Bot响应屏蔽")
