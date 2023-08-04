@@ -8,6 +8,20 @@
 from nonebot.adapters.onebot.v11 import PokeNotifyEvent, MessageSegment, Bot
 from nonebot import on_notice
 from Hiyori.Utils.Priority import Priority
+from nonebot.plugin import PluginMetadata
+
+__plugin_meta__ = PluginMetadata(
+    name="戳一戳",
+    description="不要再戳妃爱啦",
+    usage="",
+    extra={
+        "CD_Weight": 2,
+        "permission": "普通权限",
+        "example": "",
+        "Keep_On": False,
+        "Type": "Auto_Plugin",
+    },
+)
 
 poke = on_notice(priority=Priority.普通优先级, block=False)
 

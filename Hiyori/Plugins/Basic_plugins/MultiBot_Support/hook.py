@@ -52,10 +52,18 @@ async def _(event: Event):
                     else:
                         return
         else:
+            ruleQQ = multiBotConfig.rule[GroupID]
             # 本bot与该群组响应规则不匹配，且响应规则的bot已开启
-            ruleID = multiBotConfig.rule[GroupID]
-            if (int(ruleID) != event.self_id) and (ruleID in bots):
-                # 对应规则的Bot在群聊中
-                if ruleID in multiBotConfig.groupSet.keys():
-                    if str(event.group_id) in multiBotConfig.groupSet[ruleID]:
-                        raise IgnoredException("多Bot响应屏蔽")
+            if (int(ruleQQ) != event.self_id) and (ruleQQ in bots):
+                raise IgnoredException("多Bot响应屏蔽")
+            # 响应规则的bot未开启，则按照默认的优先序列，按顺序找到第一个已开启且在本群聊中的QQ
+            elif ruleQQ not in bots:
+                for QQ in multiBotConfig.priority:
+                    # 对应Bot已开启 而且这个Bot在群聊中
+                    if (QQ in bots) and (GroupID in multiBotConfig.groupSet[QQ]):
+                        if str(event.self_id) != QQ:
+                            raise IgnoredException("多Bot响应屏蔽")
+                        else:
+                            return
+
+
