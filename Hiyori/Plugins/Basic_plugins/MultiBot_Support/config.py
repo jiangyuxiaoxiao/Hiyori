@@ -7,12 +7,13 @@
 """
 import json
 from Hiyori.Utils.File import JsonFileExist, DirExist
+from Hiyori.Utils.Config import Config
 
 ConfigPath = "./Data/MultiBot_Support/config.json"
 ConfigDir = "./Data/MultiBot_Support"
 
 
-class MultiBotConfig:
+class MultiBotConfig(Config):
     """单例类 MultiBotConfig\n
     在配置文件中的保存格式： \n
     {
@@ -31,7 +32,7 @@ class MultiBotConfig:
             }
         }
         DirExist(ConfigDir)
-        JsonFileExist(Path=ConfigPath, initContent=initContent, logEnable=True, logInfo="【多Bot连接支持插件】群组规则不存在，正在创建中。")
+        JsonFileExist(Path=ConfigPath, initContent=initContent, logEnable=True, logInfo="【多Bot连接支持插件】配置文件不存在，正在创建中。")
         with open(file=ConfigPath, mode="r", encoding="utf-8") as file:
             config = json.loads(file.read())
             self.priority: list[str] = config["默认优先顺序"]

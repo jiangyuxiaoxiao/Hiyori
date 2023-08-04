@@ -10,6 +10,7 @@
       "nonebot_plugin_htmlrender",
       "Hiyori.Plugins.Basic_plugins.Plugin_Manager",
       "Ban_Checker",
+      "Auto_Withdraw",
       "nonebot_plugin_guild_patch",
       "nonebot_plugin_datastore",
       "nonebot_plugin_saa",

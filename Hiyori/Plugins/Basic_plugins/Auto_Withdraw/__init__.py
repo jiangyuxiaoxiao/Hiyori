@@ -5,93 +5,79 @@
 @Desc: 发言自动定时撤回
 @Ver : 1.0.0
 """
-import json
-import os
-import asyncio
-from nonebot.adapters.onebot.v11 import Bot, Event, MessageEvent
-from nonebot import get_bot
-from nonebot.matcher import Matcher
-from nonebot.message import run_preprocessor
-from .config import Config
-from Hiyori.Utils.File import JsonFileExist
+import re
 
-# 文件初始化
-JsonFileExist(os.path.join(Config.path, "Group.json"))  # 不存在文件则进行创建
-JsonFileExist(os.path.join(Config.path, "Private.json"))  # 不存在文件则进行创建
+from nonebot import on_regex
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, GROUP_ADMIN, GROUP_OWNER
+from nonebot.permission import SUPERUSER
+from nonebot.plugin import PluginMetadata
+
+from Hiyori.Utils.Permissions import HIYORI_OWNER, HIYORI_ADMIN
+from Hiyori.Utils.Priority import Priority
+from .config import autoWithdrawConfig
+from .hook import *
+
+StatusOn = on_regex(r"^#?开启定时撤回", permission=GROUP_ADMIN | GROUP_OWNER | HIYORI_ADMIN | HIYORI_OWNER | SUPERUSER,
+                    priority=Priority.系统优先级, block=True)
+StatusOff = on_regex(r"^#?关闭定时撤回", permission=GROUP_ADMIN | GROUP_OWNER | HIYORI_ADMIN | HIYORI_OWNER | SUPERUSER,
+                     priority=Priority.系统优先级, block=True)
+ChangeTime = on_regex(r"^#?修改定时撤回时间", permission=GROUP_ADMIN | GROUP_OWNER | HIYORI_ADMIN | HIYORI_OWNER | SUPERUSER,
+                      priority=Priority.系统优先级, block=True)
 
 
-class withDrawHelper:
-    @staticmethod
-    def getInfo(QQ: int = 0, GroupID: int = 0) -> dict[str, any]:
-        """
-        若传入QQ，则读取个人的撤回设置信息。否则读取群组的撤回设置信息
-        """
-        if QQ == 0:
-            Path = os.path.join(Config.path, "Group.json")
-            Target = str(GroupID)
+@StatusOn.handle()
+async def _(event: GroupMessageEvent):
+    message = str(event.message)
+    time = re.sub(r"^#?开启定时撤回", string=message, repl="").strip()
+    # 配置文件中本群组不存在
+    if str(event.group_id) not in autoWithdrawConfig.groupConfig.keys():
+        if time.isdigit():
+            time = int(time)
         else:
-            Path = os.path.join(Config.path, "Private.json")
-            Target = str(QQ)
-        with open(Path, mode="r", encoding="utf-8") as file:
-            info: dict = json.loads(file.read())
-
-        # 若信息不存在，则先写入
-        if Target not in info.keys():
-            info[Target] = {
-                "CD": 60,
-                "On": True
-            }
-            with open(Path, mode="w", encoding="utf-8") as file:
-                file.write(json.dumps(info, ensure_ascii=False, indent=4))
-        return info[Target]
-
-    @staticmethod
-    def setInfo(QQ: int = 0, GroupID: int = 0, setInfo: dict = None):
-        """
-        若传入QQ，则写入个人的撤回设置信息。否则写入群组的撤回设置信息
-        """
-        if QQ == 0:
-            Path = os.path.join(Config.path, "Group.json")
-            Target = str(GroupID)
+            time = autoWithdrawConfig.defaultWithdrawTime
+    else:
+        if time.isdigit():
+            time = int(time)
         else:
-            Path = os.path.join(Config.path, "Private.json")
-            Target = str(QQ)
-        with open(Path, mode="r", encoding="utf-8") as file:
-            info: dict = json.loads(file.read())
-        info[Target] = setInfo
-        with open(Path, mode="w", encoding="utf-8") as file:
-            file.write(json.dumps(info, ensure_ascii=False, indent=4))
+            time = autoWithdrawConfig.groupConfig[str(event.group_id)]["time"]
+
+    autoWithdrawConfig.groupConfig[str(event.group_id)] = {
+        "on": True,
+        "time": time
+    }
+    autoWithdrawConfig.dump()
+    await StatusOn.send(f"本群组已开启定时撤回，定时{time}秒")
 
 
-@Bot.on_called_api
-async def withdrawSelfMessage(bot: Bot, exception: Exception, api: str, data: dict[str, any], result: any):
-    """
-    bot发送消息后定时进行撤回。
-    TODO：支持群组，用户进行自定义配置。删除转发消息。
-
-    """
-    # event: Event = current_event.get()
-    if "group_id" in data:
-        if data["group_id"] == 794284558:
-            if api in ["send_msg", "send_group_msg", "send_private_msg", "send_group_forward_msg", "send_private_forward_msg"]:
-                if "message_id" in result.keys():
-                    # 设置异步任务，避免阻塞
-                    asyncio.create_task(withDrawMessage(bot, result["message_id"]))
-                    # asyncio.create_task(withDrawMessage(bot, event.message_id))
+@StatusOff.handle()
+async def _(event: GroupMessageEvent):
+    # 配置文件中本群组不存在
+    if str(event.group_id) not in autoWithdrawConfig.groupConfig.keys():
+        autoWithdrawConfig.groupConfig[str(event.group_id)] = {
+            "on": False,
+            "time": autoWithdrawConfig.defaultWithdrawTime
+        }
+    else:
+        autoWithdrawConfig.groupConfig[str(event.group_id)]["on"] = False
+    autoWithdrawConfig.dump()
+    await StatusOff.send("本群组已关闭定时撤回")
 
 
-@run_preprocessor
-async def withdrawTargetMessage(event: MessageEvent, matcher: Matcher):
-    if hasattr(event, "group_id"):
-        if event.group_id == 794284558:
-            if hasattr(event, "message_id"):
-                bot = get_bot(str(event.self_id))
-                asyncio.create_task(withDrawMessage(bot, event.message_id))
-
-
-async def withDrawMessage(bot: Bot, message_id: int):
-    await asyncio.sleep(Config.defaultCD)
-    try:
-        await bot.delete_msg(message_id=message_id)
-    except Exception as e:
-        pass
+@ChangeTime.handle()
+async def _(event: GroupMessageEvent):
+    message = str(event.message)
+    time = re.sub(r"^#?修改定时撤回时间", string=message, repl="").strip()
+    if time.isdigit():
+        time = int(time)
+    else:
+        time = autoWithdrawConfig.defaultWithdrawTime
+    # 配置文件中不存在
+    if str(event.group_id) not in autoWithdrawConfig.groupConfig.keys():
+        autoWithdrawConfig.groupConfig[str(event.group_id)] = {
+            "on": False,
+            "time": time
+        }
+    else:
+        autoWithdrawConfig.groupConfig[str(event.group_id)]["time"] = time
+    autoWithdrawConfig.dump()
+    await StatusOff.send(f"本群组定时撤回设定时间已改为{time}")
