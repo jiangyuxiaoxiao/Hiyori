@@ -4,6 +4,7 @@
       "nonebot_plugin_apscheduler",
       "Database_Manager",
       "Blacklist",
+      "MultiBot_Support",
       "Function_CD",
       "Broadcast",
       "nonebot_plugin_htmlrender",

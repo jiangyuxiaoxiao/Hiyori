@@ -35,7 +35,7 @@ def DirExist(Dir: str, logEnable: bool = False, logInfo: str = "") -> bool:
     return True
 
 
-def JsonFileExist(Path: str, initContent: dict | str = None, indent: int = 2,
+def JsonFileExist(Path: str, initContent: dict | str | list = None, indent: int = 2,
                   logEnable: bool = False, logInfo: str = "") -> bool:
     """
     判断json文件是否存在，不存在则初始化创建，若提供了initContent模板，则按模板进行创建，\n
