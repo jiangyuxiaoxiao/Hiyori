@@ -18,6 +18,7 @@ class AutoWithdrawConfig(Config):
     def __init__(self):
         initContent: dict = {
             "默认撤回时间": 60,
+            "最长撤回时间": 110,
             "群组默认开启": False,
             "群组撤回配置": {
                 "111": {
@@ -31,6 +32,7 @@ class AutoWithdrawConfig(Config):
         with open(file=ConfigPath, mode="r", encoding="utf-8") as file:
             config = json.loads(file.read())
             self.defaultWithdrawTime: int = config["默认撤回时间"]
+            self.maxWithdrawTime: int = config["最长撤回时间"]
             self.defaultOn: bool = config["群组默认开启"]
             self.groupConfig: dict[str, dict[str, any]] = config["群组撤回配置"]
 
@@ -39,6 +41,7 @@ class AutoWithdrawConfig(Config):
         with open(file=ConfigPath, mode="w", encoding="utf-8") as file:
             content = {
                 "默认撤回时间": self.defaultWithdrawTime,
+                "最长撤回时间": self.maxWithdrawTime,
                 "群组默认开启": self.defaultOn,
                 "群组撤回配置": self.groupConfig,
 
@@ -49,6 +52,7 @@ class AutoWithdrawConfig(Config):
         """从配置文件中导入配置"""
         initContent: dict = {
             "默认撤回时间": 60,
+            "最长撤回时间": 110,
             "群组默认开启": False,
             "群组撤回配置": {},
         }
@@ -57,6 +61,7 @@ class AutoWithdrawConfig(Config):
         with open(file=ConfigPath, mode="r", encoding="utf-8") as file:
             config = json.loads(file.read())
             self.defaultWithdrawTime: int = config["默认撤回时间"]
+            self.maxWithdrawTime: int = config["最长撤回时间"]
             self.defaultOn: bool = config["群组默认开启"]
             self.groupConfig: dict[str, bool] = config["群组撤回配置"]
 

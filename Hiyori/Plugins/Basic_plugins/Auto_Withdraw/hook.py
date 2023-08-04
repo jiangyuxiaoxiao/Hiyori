@@ -7,8 +7,6 @@
 """
 import asyncio
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
-from nonebot import get_bot
-from nonebot.matcher import Matcher
 from nonebot.message import run_preprocessor
 from .config import autoWithdrawConfig
 
