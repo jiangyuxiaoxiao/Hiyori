@@ -10,6 +10,7 @@ import asyncio
 from Hiyori.Utils.Database import DB_User
 from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Priority import Priority
+from Hiyori.Plugins.Basic_plugins.MultiBot_Support import getBot
 from nonebot.permission import SUPERUSER
 from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent, ActionFailed
 from nonebot import on_regex
@@ -20,7 +21,7 @@ broadcast = on_regex(r"^#broadcast", permission=SUPERUSER | HIYORI_OWNER, priori
 
 
 @broadcast.handle()
-async def _(bot: Bot, event: PrivateMessageEvent):
+async def _(event: PrivateMessageEvent):
     startTime = time.time_ns()
     # 获取对应广播信息
     message = str(event.message)
@@ -33,6 +34,7 @@ async def _(bot: Bot, event: PrivateMessageEvent):
         else:
             # 群组需要有效
             try:
+                bot = getBot(Group)
                 await bot.call_api("send_group_msg", **{"group_id": Group.GroupID, "message": message})
                 await asyncio.sleep(1)
             except ActionFailed:
