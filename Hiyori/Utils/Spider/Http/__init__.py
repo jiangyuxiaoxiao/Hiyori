@@ -16,7 +16,7 @@ import rich
 from httpx import ConnectTimeout, Response
 from retrying import retry
 
-from Hiyori.Utils.Agent import get_user_agent, get_local_proxy
+from Hiyori.Utils.Spider.Agent import get_user_agent, get_local_proxy
 
 class AsyncHttpx:
 
