@@ -4,7 +4,7 @@
       "nonebot_plugin_apscheduler",
       "Database_Manager",
       "Blacklist",
-      "MultiBot_Support",
+      "Hiyori.Plugins.Basic_plugins.MultiBot_Support",
       "Function_CD",
       "Broadcast",
       "nonebot_plugin_htmlrender",
@@ -12,6 +12,7 @@
       "Ban_Checker",
       "Auto_Withdraw",
       "nonebot_plugin_guild_patch",
+      "nonebot_plugin_localstore",
       "nonebot_plugin_datastore",
       "nonebot_plugin_saa",
 
