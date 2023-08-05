@@ -60,13 +60,14 @@ async def _(matcher: Matcher, event: GroupMessageEvent):
                 author = data["author"]
                 title = data["title"]
                 imgurl = data["url"]
-                try:
-                    imgurl = imgurl.replace('i.pixiv.cat','i.pixiv.re')
-                except:
-                    try:
-                        imgurl = imgurl.replace('i.pixiv.net', 'i.pixiv.re')
-                    except:
-                        imgurl = imgurl.replace('i.pximg.net', 'i.pixiv.re')
+                if 'i.pixiv.cat' in imgurl:
+                    imgurl = imgurl.replace('i.pixiv.cat', 'i.pixiv.re')
+                # 将 'i.pixiv.net' 替换为 'i.pixiv.re'
+                elif 'i.pixiv.net' in imgurl:
+                    imgurl = imgurl.replace('i.pixiv.net', 'i.pixiv.re')
+                # 将 'i.pximg.net' 替换为 'i.pixiv.re'
+                elif 'i.pximg.net' in imgurl:
+                    imgurl = imgurl.replace('i.pximg.net', 'i.pixiv.re')
                 message = f'''
                 pid : {pid} \nauthor : {author} \ntitle: {title}
                 '''.strip()
@@ -75,51 +76,51 @@ async def _(matcher: Matcher, event: GroupMessageEvent):
                     await setu.send("没找到符合条件的色图...")
                 await setu.send(message, at_sender=True)
             else:
-                await setu.send("没找到符合条件的色图...")
-    except:
-        try:
-            params = {
-                "r18": 0,  # 添加r18参数 0为否，1为是，2为混合
-                "tag": user_tag,  # 若指定tag
-                "num": 1,  # 一次返回的结果数量
-                "size": ["original"],
-            }
-            res = await AsyncHttpx.get(url=url2, timeout=10000, params=params)
-            if res.status_code == 200:
-                data = res.json()
-                if not data["error"]:
-                    data = data["data"][0]
-                    pid = data["pid"]
-                    uid = data["uid"]
-                    r18 = data["r18"].capitalize()
-                    author = data["author"]
-                    tags = data["tags"]
-                    title = data["title"]
-                    imgurl = data["urls"]["original"]
-                    imageurl = imgurl.replace('i.pixiv.re','i.pixiv.cat')
+                try:
                     params = {
-                        "r18": r18,
-                        "tags": tags,
-                        "url":imageurl,
-                        "title":title,
-                        "pid":pid,
-                        "uid":uid,
-                        "author":author,
-                        "key":"请练习开发者"
+                        "r18": 0,  # 添加r18参数 0为否，1为是，2为混合
+                        "tag": user_tag,  # 若指定tag
+                        "num": 1,  # 一次返回的结果数量
+                        "size": ["original"],
                     }
-                    res = await AsyncHttpx.get(url=url1, timeout=10000, params=params)
-                    if res.text == 'success':
-                        print("写入数据成功")
-                    else:
-                        print("写入数据失败，数据库回滚")
-                    message = f'''
-                    pid : {pid} \nauthor : {author} \ntitle: {title}
-                    '''.strip()
-                    message = message + MessageSegment.image(imgurl)
-                    if not imgurl:
-                        await setu.send("没找到符合条件的色图...")
-                    await setu.send(message, at_sender=True)
-                else:
+                    res = await AsyncHttpx.get(url=url2, timeout=10000, params=params)
+                    if res.status_code == 200:
+                        data = res.json()
+                        if not data["error"]:
+                            data = data["data"][0]
+                            pid = data["pid"]
+                            uid = data["uid"]
+                            r18 = data["r18"].capitalize()
+                            author = data["author"]
+                            tags = data["tags"]
+                            title = data["title"]
+                            imgurl = data["urls"]["original"]
+                            imageurl = imgurl.replace('i.pixiv.re', 'i.pixiv.cat')
+                            params = {
+                                "r18": r18,
+                                "tags": tags,
+                                "url": imageurl,
+                                "title": title,
+                                "pid": pid,
+                                "uid": uid,
+                                "author": author,
+                                "key": "请联系开发者"
+                            }
+                            res = await AsyncHttpx.get(url=url1, timeout=10000, params=params)
+                            if res.text == 'success':
+                                print("写入数据成功")
+                            else:
+                                print("写入数据失败，数据库回滚")
+                            message = f'''
+                            pid : {pid} \nauthor : {author} \ntitle: {title}
+                            '''.strip()
+                            message = message + MessageSegment.image(imgurl)
+                            if not imgurl:
+                                await setu.send("没找到符合条件的色图...")
+                            await setu.send(message, at_sender=True)
+                        else:
+                            await setu.send("没找到符合条件的色图...")
+                except:
                     await setu.send("没找到符合条件的色图...")
-        except:
-            await setu.send("没找到符合条件的色图...")
+    except:
+        await setu.send("没找到符合条件的色图...")
