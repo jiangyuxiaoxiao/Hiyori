@@ -44,11 +44,11 @@ async def _(bot: Bot, event: MessageEvent):
         group_name = group_info["group_name"]
         message = f"来自群{group_name}({event.group_id})\n" \
                   f"用户{Info}({event.user_id})的消息：\n\n" \
-                  f"{event.raw_message}"
+                  f"{event.message}"
     else:
         Info = await GetQQStrangerName(bot=bot, QQ=event.user_id)
         message = f"来自用户{Info}({event.user_id})的消息：\n\n" \
-                  f"{event.raw_message}"
+                  f"{event.message}"
     for superuser in superusers:
         await bot.send_private_msg(user_id=int(superuser), message=message)
     await WhereIsMom.send("已将消息转述给开发者~")

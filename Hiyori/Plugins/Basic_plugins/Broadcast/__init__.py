@@ -12,7 +12,7 @@ from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Plugins.Basic_plugins.MultiBot_Support import getBot
 from nonebot.permission import SUPERUSER
-from nonebot.adapters.onebot.v11 import Bot, PrivateMessageEvent, ActionFailed
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, ActionFailed
 from nonebot import on_regex
 from nonebot.log import logger
 import re
@@ -21,7 +21,7 @@ broadcast = on_regex(r"^#broadcast", permission=SUPERUSER | HIYORI_OWNER, priori
 
 
 @broadcast.handle()
-async def _(event: PrivateMessageEvent):
+async def _(event: MessageEvent):
     startTime = time.time_ns()
     # 获取对应广播信息
     message = str(event.message)
