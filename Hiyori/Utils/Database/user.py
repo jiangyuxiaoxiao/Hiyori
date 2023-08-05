@@ -9,7 +9,8 @@ import time
 
 import peewee
 from nonebot.log import logger
-from nonebot import get_bot
+from nonebot import get_bots
+from nonebot.adapters.onebot.v11 import Bot
 import sys
 
 Hiyori = peewee.SqliteDatabase('./Data/Database/Hiyori.db')
@@ -92,41 +93,42 @@ class DB_User:
         startTime = time.time_ns()
         userInsertCount = userUpdateCount = 0
         groupInsertCount = groupUpdateCount = 0
-        bot = get_bot()
-        # 获取群列表
-        groups = await bot.call_api("get_group_list", **{"no_cache": True})
-        for group in groups:
-            # group_id 群号
-            GroupID = group["group_id"]
-            # group_name 群名
-            GroupName = group["group_name"]
-            # 群更新
-            if GroupID not in Groups_Memory:
-                groupInsertCount = groupInsertCount + 1
-                # 更新数据库与内存
-                Groups_Memory[GroupID] = Group.create(GroupID=GroupID, GroupName=GroupName)
-            else:
-                # 检查群名是否变更
-                if Groups_Memory[GroupID].GroupName != GroupName:
-                    groupUpdateCount = groupUpdateCount + 1
-                    Groups_Memory[GroupID].GroupName = GroupName
-                    Groups_Memory[GroupID].save()
-            # 群用户更新
-            groupMembers = await bot.call_api("get_group_member_list", **{"group_id": GroupID, "no_cache": True})
-            with Hiyori.atomic():
-                for groupMember in groupMembers:
-                    QQ = groupMember["user_id"]
-                    Name = groupMember["nickname"]
-                    if QQ not in Users_Memory:
-                        userInsertCount = userInsertCount + 1
-                        # 更新数据库与内存
-                        Users_Memory[QQ] = User.create(QQ=QQ, Name=Name)
-                    else:
-                        # 检查用户名是否变更
-                        if Users_Memory[QQ].Name != Name:
-                            userUpdateCount = userUpdateCount + 1
-                            Users_Memory[QQ].Name = Name
-                            Users_Memory[QQ].save()
+        bots: dict[str, Bot] = get_bots()
+        for bot in bots.values():
+            # 获取群列表
+            groups = await bot.call_api("get_group_list", **{"no_cache": True})
+            for group in groups:
+                # group_id 群号
+                GroupID = group["group_id"]
+                # group_name 群名
+                GroupName = group["group_name"]
+                # 群更新
+                if GroupID not in Groups_Memory:
+                    groupInsertCount = groupInsertCount + 1
+                    # 更新数据库与内存
+                    Groups_Memory[GroupID] = Group.create(GroupID=GroupID, GroupName=GroupName)
+                else:
+                    # 检查群名是否变更
+                    if Groups_Memory[GroupID].GroupName != GroupName:
+                        groupUpdateCount = groupUpdateCount + 1
+                        Groups_Memory[GroupID].GroupName = GroupName
+                        Groups_Memory[GroupID].save()
+                # 群用户更新
+                groupMembers = await bot.call_api("get_group_member_list", **{"group_id": GroupID, "no_cache": True})
+                with Hiyori.atomic():
+                    for groupMember in groupMembers:
+                        QQ = groupMember["user_id"]
+                        Name = groupMember["nickname"]
+                        if QQ not in Users_Memory:
+                            userInsertCount = userInsertCount + 1
+                            # 更新数据库与内存
+                            Users_Memory[QQ] = User.create(QQ=QQ, Name=Name)
+                        else:
+                            # 检查用户名是否变更
+                            if Users_Memory[QQ].Name != Name:
+                                userUpdateCount = userUpdateCount + 1
+                                Users_Memory[QQ].Name = Name
+                                Users_Memory[QQ].save()
 
         # 输出统计信息
         endTime = time.time_ns()

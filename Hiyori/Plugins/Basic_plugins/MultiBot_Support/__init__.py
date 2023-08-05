@@ -5,8 +5,8 @@
 @Desc: 多BOT连接支持插件：每个群聊最多仅有一个bot响应
 @Ver : 1.0.0
 """
-from nonebot import on_regex
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment
+from nonebot import on_regex, get_bot
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot
 from nonebot.permission import SUPERUSER
 
 from Hiyori.Utils.Priority import Priority
@@ -15,7 +15,6 @@ from Hiyori.Utils.Message.At import GetAtQQ
 
 from .config import multiBotConfig
 from .hook import *
-
 
 HiyoriStart = on_regex(pattern=r"妃爱启动", permission=SUPERUSER | HIYORI_OWNER, priority=Priority.系统优先级)
 
@@ -43,3 +42,34 @@ async def _(event: GroupMessageEvent):
     return
 
 
+def getBot(GroupID: int | str) -> Bot | None:
+    """
+    在多Bot连接的情况下，根据群组ID来返回对应的Bot。如果群组无对应Bot，则返回None。
+
+    :param GroupID: 群号
+    """
+    bots = get_bots()
+    GroupID = str(GroupID)
+    # 群组不在特殊规则中
+    if GroupID not in multiBotConfig.rule.keys():
+        # 遍历响应优先序列，按顺序找到第一个已开启且在本群聊中的QQ
+        for botQQ in multiBotConfig.priority:
+            # 对应Bot已开启 而且这个Bot在群聊中
+            if (botQQ in bots) and (GroupID in multiBotConfig.groupSet[botQQ]):
+                return get_bot(self_id=botQQ)
+        # 没找到就返回None
+        return None
+    else:
+        # 特定规则指定的QQ
+        ruleQQ = multiBotConfig.rule[GroupID]
+        # 特定规则指定的QQ已开启
+        if ruleQQ in bots.keys():
+            return get_bot(self_id=ruleQQ)
+        else:
+            # 则按照顺序优先级返回
+            for botQQ in multiBotConfig.priority:
+                # 对应Bot已开启 而且这个Bot在群聊中
+                if (botQQ in bots) and (GroupID in multiBotConfig.groupSet[botQQ]):
+                    return get_bot(self_id=botQQ)
+            # 没找到就返回None
+            return None
