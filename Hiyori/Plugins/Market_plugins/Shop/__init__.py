@@ -178,7 +178,7 @@ async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
         item = Shops.items[itemName]
         # 逻辑检查——商品数量合法
         if not itemNumber.isdigit():
-            message = MessageSegment.at(event.user_id) + "物品数量不是整数哦"
+            message = MessageSegment.at(event.user_id) + "物品数量不是正整数哦"
             await buy.send(message)
             return
         itemNumber = int(itemNumber)
@@ -232,7 +232,7 @@ async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
         item = Shops.items[itemName]
         # 逻辑检查——物品数量合法
         if not itemNumber.isdigit():
-            message = MessageSegment.at(event.user_id) + "物品数量不是整数哦"
+            message = MessageSegment.at(event.user_id) + "物品数量不是正整数哦"
             await use.send(message)
             return
         itemNumber = int(itemNumber)
