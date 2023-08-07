@@ -65,3 +65,8 @@ def GetGroupAvatarUrl(Group: int, Size: int = 640) -> str:
     :return: Url
     """
     return f"https://p.qlogo.cn/gh/{Group}/{Group}/{Size}"
+
+
+async def GetGroupName(bot: Bot, Group: int) -> str:
+    groupInfo = await bot.get_group_info(group_id=Group)
+    return groupInfo["group_name"]

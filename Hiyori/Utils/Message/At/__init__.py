@@ -8,7 +8,7 @@
 import re
 
 
-def GetAtQQ(message: str) -> list[int]:
+def GetAtQQs(message: str) -> list[int]:
     """注：不匹配艾特全体成员"""
     result = []
     matchList: list[str] = re.findall(r"\[CQ:at,qq=[0-9]+]", string=message)

@@ -5,10 +5,14 @@
 @Desc: 妃爱商店物品功能实现
 @Ver : 1.0.0
 """
-from Hiyori.Utils.Database import DB_User
+from nonebot.matcher import Matcher
+from nonebot.typing import T_State
+from nonebot.adapters import Bot, Event
+from Hiyori.Utils.Shop.items import 唯一物品
 
 
-def 白银会员卡(QQ: int, GroupID: int, Quantity: int, **kwargs) -> (bool, str):
-    return True, "持有该会员卡在以下商店享受九折优惠：\n" \
-                 "1.群友商店\n" \
-                 "2.妃爱小卖部"
+class 白银会员卡(唯一物品):
+    async def use(self, QQ: int, Targets: list[int], Num: int, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
+        await matcher.send("持有该会员卡在以下商店享受九折优惠：\n"
+                           "1.群友商店\n"
+                           "2.妃爱小卖部")

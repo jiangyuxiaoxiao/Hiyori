@@ -7,7 +7,7 @@
 """
 from Hiyori.Utils.Shop import Shops, Shop
 from .item import *
-from Hiyori.Utils.Shop.BasicFunction import *
+from Hiyori.Utils.Shop.BasicFunction import 唯一物品
 
 
 def SlaveShopInit():

@@ -5,9 +5,10 @@
 @Desc: 自定义异常
 @Ver : 1.0.0
 """
+from .MarketException import MarketException
 
 
-class ConfigException(Exception):
+class ConfigException(BaseException):
     """异常，配置文件未正确配置"""
 
     def __init__(self, path: str = ""):

@@ -7,17 +7,51 @@
 """
 
 
-class MarketException(Exception):
+class MarketException(BaseException):
     """市场基类异常"""
-    pass
+
+    def __str__(self):
+        return ""
 
 
 class MoneyNotEnoughException(MarketException):
     """金钱不够异常"""
 
-    def __init__(self, own: float, need: float):
+    def __init__(self, own: float = 0, need: float = 0):
         self.ExceptInfo = f"金币不够，当前金币{own}，需要{need}。"
 
     def __str__(self):
         return self.ExceptInfo
+
+
+class AttitudeNotEnoughException(MarketException):
+    """好感度不够异常"""
+
+    def __init__(self, now: int = 0, need: int = 0):
+        self.ExceptInfo = f"好感度不够，当前{now}，需要{need}。"
+
+    def __str__(self):
+        return self.ExceptInfo
+
+
+class NoTargetException(MarketException):
+    """缺少使用对象异常"""
+
+    def __init__(self):
+        self.ExceptInfo = f"需要指定使用对象"
+
+    def __str__(self):
+        return self.ExceptInfo
+
+
+class ItemNotEnoughException(MarketException):
+    """物品数量不足"""
+
+    def __init__(self, now: int = 0, need: int = 0):
+        self.ExceptInfo = f"物品数量不足，当前{now}个物品，需要{need}。"
+
+    def __str__(self):
+        return self.ExceptInfo
+
+
 

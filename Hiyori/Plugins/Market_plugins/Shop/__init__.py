@@ -6,14 +6,19 @@
 @Ver : 1.0.0
 """
 from nonebot import on_regex
+from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import MessageSegment, MessageEvent, Bot
 from nonebot.plugin import PluginMetadata
-from Hiyori.Utils.Shop import Shops, Shop
-from Hiyori.Utils.Shop.BasicFunction import 折扣系数计算
+from nonebot.typing import T_State
+from nonebot.log import logger
+from Hiyori.Utils.Shop import Shops
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import html_to_pic
-from Hiyori.Utils.Database import DB_Item, DB_User
+from Hiyori.Utils.Message.At import GetAtQQs
+from Hiyori.Utils.Database import DB_Item
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
+from Hiyori.Utils.Exception.MarketException import MarketException
+from Hiyori.Utils.Permissions import HIYORI_OWNER
 import re
 
 __plugin_meta__ = PluginMetadata(
@@ -36,8 +41,8 @@ __plugin_meta__ = PluginMetadata(
 
 myItems = on_regex("(^#我的背包$)|(^#查看背包$)", priority=Priority.普通优先级, block=False)
 checkShop = on_regex(r"^#(查看)?[\s\S]*商店$", priority=Priority.普通优先级, block=False)
-buy = on_regex(r"(^#购买物品)|(^#购买商品)", priority=Priority.普通优先级, block=False)
-use = on_regex(r"(^#使用物品)|(^#使用商品)", priority=Priority.普通优先级, block=False)
+buy = on_regex(r"(^#购买物品)|(^#购买商品)", priority=Priority.普通优先级, block=False, permission=HIYORI_OWNER)
+use = on_regex(r"(^#使用物品)|(^#使用商品)", priority=Priority.普通优先级, block=False, permission=HIYORI_OWNER)
 
 BackPackHtml = "./Data/Shop/Template/BackPack.html"
 ShopHtml = "./Data/Shop/Template/Shop.html"
@@ -147,19 +152,20 @@ async def _(event: MessageEvent):
 
 
 @buy.handle()
-async def _(bot: Bot, event: MessageEvent):
+async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
     message = str(event.message)
+    targets = GetAtQQs(message=message)  # 目标对象
     message = message.replace("#购买物品", "", 1).lstrip()
     message = message.replace("#购买商品", "", 1).lstrip()
     messages = message.split(" ")
     if len(messages) == 1:
         itemName = messages[0]
         itemNumber = "1"
-    elif len(messages) == 2:
+    elif len(messages) >= 2:
         itemName = messages[0]
         itemNumber = messages[1]
     else:
-        message = MessageSegment.at(event.user_id) + "妃爱没懂你的意思，是不是输入格式错了？"
+        message = MessageSegment.at(event.user_id) + "请输入商品名哦"
         await buy.send(message)
         return
     # 逻辑检查——商品不存在
@@ -169,65 +175,31 @@ async def _(bot: Bot, event: MessageEvent):
         return
 
     else:
-        折扣系数 = 折扣系数计算(QQ=event.user_id, ItemName=itemName)
         item = Shops.items[itemName]
         # 逻辑检查——商品数量合法
         if not itemNumber.isdigit():
-            message = MessageSegment.at(event.user_id) + "妃爱没懂你的意思，是不是输入格式错了？"
+            message = MessageSegment.at(event.user_id) + "物品数量不是整数哦"
             await buy.send(message)
             return
         itemNumber = int(itemNumber)
         if itemNumber <= 0:
-            message = MessageSegment.at(event.user_id) + "妃爱没懂你的意思，是不是输入格式错了？"
+            message = MessageSegment.at(event.user_id) + "物品使用数量需大于0"
             await buy.send(message)
             return
-        # 逻辑检查——好感度不足
-        User = DB_User.getUser(QQ=event.user_id)
-        if User.Attitude < item.need_attitude:
-            message = MessageSegment.at(event.user_id) + f"商品需要{item.need_attitude}好感度，你的好感度不足哟"
-            await buy.send(message)
-            return
-        # 逻辑检查——余额不足
-        if not DB_User.spendMoney(QQ=event.user_id, Money=itemNumber * item.price * 折扣系数):
-            message = MessageSegment.at(event.user_id) + "你的妃爱币不够啦"
-            await buy.send(message)
-            return
-        else:
-            dbItem = DB_Item.getUserItem(QQ=event.user_id, ItemName=itemName)
-            # 执行购买前触发函数
-            if "购买前触发函数" in item.Functions.keys():
-                if hasattr(event, "group_id"):
-                    GroupID = event.group_id
-                else:
-                    GroupID = 0
-                flag, result = item.Functions["购买前触发函数"](QQ=event.user_id, GroupID=GroupID, Quantity=itemNumber,
-                                                                ItemName=itemName)
-                if not flag:
-                    await buy.send(result)
-                    # 返还余额
-                    DB_User.spendMoney(QQ=event.user_id, Money=-itemNumber * item.price)
-                    return
-            dbItem.Quantity += itemNumber
-            dbItem.save()
-            user = DB_User.getUser(QQ=event.user_id)
-            message = MessageSegment.at(event.user_id)
-            message += f"成功购买{itemNumber}个{item.name}，当前余额{int(user.Money / 100)}妃爱币。"
-            await buy.send(message)
-            # 执行购买后触发函数
-            if "购买后触发函数" in item.Functions.keys():
-                if hasattr(event, "group_id"):
-                    GroupID = event.group_id
-                else:
-                    GroupID = 0
-                flag, result = await item.Functions["购买后触发函数"](QQ=event.user_id, GroupID=GroupID,
-                                                                      Quantity=itemNumber, bot=bot)
-                if result != "":
-                    await buy.send(result)
-            return
+        try:
+            # 执行 购买前阶段
+            await item.beforePurchase(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+            # 执行 购买阶段
+            await item.purchase(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+            # 执行 购买后阶段
+            await item.afterPurchase(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+        except MarketException as e:
+            # 打印异常
+            logger.debug(str(e))
 
 
 @use.handle()
-async def _(bot: Bot, event: MessageEvent):
+async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
     # 功能调试
     """
     if event.user_id != 654163754:
@@ -238,24 +210,17 @@ async def _(bot: Bot, event: MessageEvent):
     message = message.replace("#使用物品", "", 1).lstrip()
     message = message.replace("#使用商品", "", 1).lstrip()
     # 获取函数使用对象
-    targetMessage = re.search(pattern=r"\[CQ:at,qq=[0-9]+\]", string=message)
-    target = 0
-    if targetMessage:
-        targetMessage = targetMessage.group()
-        target = re.search(pattern=r"[0-9]+", string=targetMessage).group()
-        target = int(target)
-        # 去除@信息
-        message = re.sub(pattern=r"\[CQ:at,qq=[0-9]+\]", repl="", string=message).strip()
+    targets = GetAtQQs(message=message)  # 目标对象
     messages = message.split(" ")
     if len(messages) == 1:
         itemName = messages[0]
         itemNumber = "1"
-    elif len(messages) == 2:
+    elif len(messages) >= 2:
         itemName = messages[0]
         itemNumber = messages[1]
     else:
-        message = MessageSegment.at(event.user_id) + "妃爱没懂你的意思，是不是输入格式错了？"
-        await use.send(message)
+        message = MessageSegment.at(event.user_id) + "请输入商品名哦"
+        await buy.send(message)
         return
     # 逻辑检查——物品不存在
     if itemName not in Shops.items.keys():
@@ -267,59 +232,18 @@ async def _(bot: Bot, event: MessageEvent):
         item = Shops.items[itemName]
         # 逻辑检查——物品数量合法
         if not itemNumber.isdigit():
-            message = MessageSegment.at(event.user_id) + "妃爱没懂你的意思，是不是输入格式错了？"
+            message = MessageSegment.at(event.user_id) + "物品数量不是整数哦"
             await use.send(message)
             return
         itemNumber = int(itemNumber)
         if itemNumber <= 0:
-            message = MessageSegment.at(event.user_id) + "妃爱没懂你的意思，是不是输入格式错了？"
+            message = MessageSegment.at(event.user_id) + "物品使用数量需大于0"
             await use.send(message)
             return
         # 逻辑检查——背包物品数量不足 或 背包物品数量不合法
-        DBitem = DB_Item.getUserItem(QQ=event.user_id, ItemName=itemName)
-        if DBitem.Decimal != 0:
-            # 不允许使用带小数点的物品
-            message = MessageSegment.at(event.user_id) + "物品无法使用~"
-            await use.send(message)
-            return
-        if DBitem.Quantity < itemNumber:
-            message = MessageSegment.at(event.user_id) + f"你的{itemName}数量不足哦。"
-            await use.send(message)
-            return
-        # 逻辑检查——物品存在可调用的函数
-        if "使用时触发函数" not in item.Functions.keys():
-            message = MessageSegment.at(event.user_id) + "物品无法使用~"
-            await use.send(message)
-            return
-        # 逻辑检查——指定使用对象的物品必须可以指定对象
-        if target != 0:
-            if not item.hasTarget:
-                message = MessageSegment.at(event.user_id) + "该物品无法指定他人使用~"
-                await use.send(message)
-                return
-        # 参数检查——群聊Q号
-        if hasattr(event, "group_id"):
-            GroupID = event.group_id
-        else:
-            GroupID = 0
-        flag, result = item.Functions["使用时触发函数"](
-            QQ=event.user_id, GroupID=GroupID, Quantity=itemNumber, **{"target": target, "bot": bot})
-        # 返回结果处理
-        if result == "":
-            return
-        # 预定义参数处理
-        if "{UserName}" in result:
-            if hasattr(event, "group_id"):
-                UserName = await GetQQGrouperName(bot=bot, QQ=event.user_id, Group=event.group_id)
-            else:
-                UserName = await GetQQStrangerName(bot=bot, QQ=event.user_id)
-            result = result.replace("{UserName}", UserName)
-        if "{TargetName}" in result:
-            # 群聊中
-            if hasattr(event, "group_id"):
-                UserName = await GetQQGrouperName(bot=bot, QQ=target, Group=event.group_id)
-            else:
-                UserName = await GetQQStrangerName(bot=bot, QQ=target)
-            result = result.replace("{TargetName}", UserName)
-        await use.send(result)
-        return
+        try:
+            await item.beforeUse(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+            await item.use(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+            await item.afterUse(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+        except MarketException as e:
+            logger.debug(str(e))

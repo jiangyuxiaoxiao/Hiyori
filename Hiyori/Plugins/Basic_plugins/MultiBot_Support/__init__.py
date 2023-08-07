@@ -11,7 +11,7 @@ from nonebot.permission import SUPERUSER
 
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Permissions import HIYORI_OWNER
-from Hiyori.Utils.Message.At import GetAtQQ
+from Hiyori.Utils.Message.At import GetAtQQs
 
 from .config import multiBotConfig
 from .hook import *
@@ -22,7 +22,7 @@ HiyoriStart = on_regex(pattern=r"妃爱启动", permission=SUPERUSER | HIYORI_OW
 @HiyoriStart.handle()
 async def _(event: GroupMessageEvent):
     message = str(event.message)
-    QQList = GetAtQQ(message)
+    QQList = GetAtQQs(message)
     if event.to_me:
         QQList.append(event.self_id)
     # 指令没艾特人
