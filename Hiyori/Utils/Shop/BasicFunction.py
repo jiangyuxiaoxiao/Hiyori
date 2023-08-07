@@ -6,7 +6,6 @@
 @Ver : 1.0.0
 """
 from Hiyori.Utils.Database import DB_Item
-from . import Shops
 
 
 def 唯一物品(QQ: int, GroupID: int, Quantity: int, **kwargs) -> (bool, str):
@@ -19,10 +18,3 @@ def 唯一物品(QQ: int, GroupID: int, Quantity: int, **kwargs) -> (bool, str):
     if Quantity != 1:
         return False, "唯一性物品不能购买多个"
     return True, ""
-
-
-def 折扣系数计算(QQ: int, ItemName: str) -> float:
-    if ItemName in Shops.shops["群友"].items.keys() or ItemName in Shops.shops["妃爱"].items.keys():
-        if DB_Item.hasItem(QQ=QQ, ItemName="白银会员卡"):
-            return 0.9
-    return 1
