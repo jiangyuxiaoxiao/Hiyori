@@ -26,7 +26,7 @@ class UniqueItemException(MarketException):
         return self.ExceptInfo
 
 
-class 唯一物品(Item):
+class UniqueItem(Item):
     def __init__(self, name: str, description: str = "", price: float = 10000, hasTarget: bool = False, need_attitude: int = 0, anonymous: bool = False,
                  Functions: dict[str, any] = None):
         super().__init__(name, description, price, hasTarget, need_attitude, anonymous, Functions)
