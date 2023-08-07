@@ -13,11 +13,11 @@ from nonebot.typing import T_State
 from nonebot.log import logger
 from Hiyori.Utils.Shop import Shops
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import html_to_pic
-from Hiyori.Utils.Message.At import GetAtQQs
+from Hiyori.Utils.Message.At import GetAtQQs, clearAt
 from Hiyori.Utils.Database import DB_Item
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
-from Hiyori.Utils.Exception.MarketException import MarketException
+from Hiyori.Utils.Exception.Market import MarketException
 from Hiyori.Utils.Permissions import HIYORI_OWNER
 import re
 
@@ -41,8 +41,8 @@ __plugin_meta__ = PluginMetadata(
 
 myItems = on_regex("(^#我的背包$)|(^#查看背包$)", priority=Priority.普通优先级, block=False)
 checkShop = on_regex(r"^#(查看)?[\s\S]*商店$", priority=Priority.普通优先级, block=False)
-buy = on_regex(r"(^#购买物品)|(^#购买商品)", priority=Priority.普通优先级, block=False, permission=HIYORI_OWNER)
-use = on_regex(r"(^#使用物品)|(^#使用商品)", priority=Priority.普通优先级, block=False, permission=HIYORI_OWNER)
+buy = on_regex(r"(^#购买物品)|(^#购买商品)", priority=Priority.普通优先级, block=False)
+use = on_regex(r"(^#使用物品)|(^#使用商品)", priority=Priority.普通优先级, block=False)
 
 BackPackHtml = "./Data/Shop/Template/BackPack.html"
 ShopHtml = "./Data/Shop/Template/Shop.html"
@@ -157,6 +157,7 @@ async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
     targets = GetAtQQs(message=message)  # 目标对象
     message = message.replace("#购买物品", "", 1).lstrip()
     message = message.replace("#购买商品", "", 1).lstrip()
+    message = clearAt(message).strip()
     messages = message.split(" ")
     if len(messages) == 1:
         itemName = messages[0]
@@ -212,6 +213,7 @@ async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
     message = message.replace("#使用商品", "", 1).lstrip()
     # 获取函数使用对象
     targets = GetAtQQs(message=message)  # 目标对象
+    message = clearAt(message).strip()
     messages = message.split(" ")
     if len(messages) == 1:
         itemName = messages[0]

@@ -11,7 +11,7 @@ from nonebot.typing import T_State
 from nonebot.matcher import Matcher
 
 from Hiyori.Utils.Database import DB_Item
-import Hiyori.Utils.Exception.MarketException as MarketException
+from Hiyori.Utils.Exception.Market import *
 
 from . import Item
 
@@ -66,7 +66,7 @@ class SingleItem(Item):
             else:
                 msg = f"一次只能使用一个{self.name}哦"
             await matcher.send(msg)
-            raise MarketException.ItemNumNotCorrectException()
+            raise ItemNumNotCorrectException()
         # 使用的物品数量大于持有的物品数量
         item = DB_Item.getUserItem(QQ=QQ, ItemName=self.name)
         if item.Quantity < 1:
@@ -76,6 +76,4 @@ class SingleItem(Item):
             else:
                 msg = f"你的{self.name}数量不够，需要1个{self.name}。"
             await matcher.send(msg)
-            raise MarketException.ItemNotEnoughException(now=item.Quantity, need=1)
-
-
+            raise ItemNotEnoughException(now=item.Quantity, need=1)
