@@ -73,6 +73,10 @@ class Item:
 
     async def consume(self, QQ: int, Targets: list[int], Num: int, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
         """消耗物品执行函数"""
+        item = DB_Item.getUserItem(QQ=QQ, ItemName=self.name)
+        # 由于已经在beforeUse时检查了使用物品数量，此处不再检查，beforeUse被重写时需留心
+        item.Quantity -= Num
+        item.save()
 
     async def beforeUse(self, QQ: int, Targets: list[int], Num: int, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
         """使用前触发函数"""

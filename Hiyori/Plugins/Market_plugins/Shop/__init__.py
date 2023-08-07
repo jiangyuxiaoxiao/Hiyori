@@ -186,6 +186,7 @@ async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
             message = MessageSegment.at(event.user_id) + "物品使用数量需大于0"
             await buy.send(message)
             return
+        # 购买执行流程
         try:
             # 执行 购买前阶段
             await item.beforePurchase(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
@@ -240,7 +241,7 @@ async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
             message = MessageSegment.at(event.user_id) + "物品使用数量需大于0"
             await use.send(message)
             return
-        # 逻辑检查——背包物品数量不足 或 背包物品数量不合法
+        # 使用执行流程
         try:
             # 执行 使用前阶段
             await item.beforeUse(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
