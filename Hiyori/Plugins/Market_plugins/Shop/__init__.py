@@ -242,8 +242,11 @@ async def _(matcher: Matcher, state: T_State, bot: Bot, event: MessageEvent):
             return
         # 逻辑检查——背包物品数量不足 或 背包物品数量不合法
         try:
+            # 执行 使用前阶段
             await item.beforeUse(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+            # 执行 使用阶段
             await item.use(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
+            # 执行 使用后阶段
             await item.afterUse(QQ=event.user_id, Targets=targets, Num=itemNumber, bot=bot, event=event, matcher=matcher, state=state)
         except MarketException as e:
             logger.debug(str(e))

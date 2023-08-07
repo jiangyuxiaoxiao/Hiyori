@@ -43,7 +43,7 @@ class Item:
 
     async def purchase(self, QQ: int, Targets: list[int], Num: int, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
         """购买触发函数"""
-        money = 折扣系数计算(QQ=QQ, ItemName=self.name)
+        money = 折扣系数计算(QQ=QQ, ItemName=self.name) * Num * self.price
         if not DB_User.spendMoney(QQ=QQ, Money=money):
             user = DB_User.getUser(QQ)
             # 多适配器判断
