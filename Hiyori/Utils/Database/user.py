@@ -8,6 +8,7 @@
 import time
 
 import peewee
+from nonebot import get_driver
 from nonebot.log import logger
 from nonebot import get_bots
 from nonebot.adapters.onebot.v11 import Bot
@@ -59,6 +60,7 @@ class DB_User:
     # 模块初始化函数
     @staticmethod
     def userInit():
+        superusers = get_driver().config.superusers
         """模块初始化函数，通常一次运行只调用一次。"""
         # 载入全局变量
         global Users_Memory, Groups_Memory
@@ -76,6 +78,14 @@ class DB_User:
             Users_Memory[userInfo.QQ] = userInfo
         for groupInfo in groupsInfo:
             Groups_Memory[groupInfo.GroupID] = groupInfo
+        # 超管权限同步
+        for superuser in superusers:
+            if superuser.isdigit():
+                user = DB_User.getUser(int(superuser))
+                if user.Permission != 0:
+                    user.Permission = 0
+                    DB_User.updateUser(user)
+                    logger.success(f"根据SUPERUSER配置信息，已将用户{superuser}提升为HIYORI_OWNER")
 
         Memory = sys.getsizeof(Users_Memory) + sys.getsizeof(Groups_Memory)
         Memory = round(Memory / (1024 * 1024), 3)
