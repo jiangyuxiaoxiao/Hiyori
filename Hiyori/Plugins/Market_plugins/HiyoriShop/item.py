@@ -12,7 +12,7 @@ from Hiyori.Utils.Shop.items import UniqueItem
 
 
 class 白银会员卡(UniqueItem):
-    async def use(self, QQ: int, Targets: list[int], Num: int, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
+    async def use(self, QQ: int, Targets: list[int] = None, Num: int = 0, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
         await matcher.send("持有该会员卡在以下商店享受九折优惠：\n"
                            "1.群友商店\n"
                            "2.妃爱小卖部")

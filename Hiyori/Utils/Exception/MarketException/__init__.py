@@ -54,4 +54,31 @@ class ItemNotEnoughException(MarketException):
         return self.ExceptInfo
 
 
+class ItemNumNotCorrectException(MarketException):
+    """物品数量不正确"""
 
+    def __init__(self):
+        self.ExceptInfo = f"物品使用数量不正确"
+
+    def __str__(self):
+        return self.ExceptInfo
+
+
+class TypeErrorException(MarketException):
+    """触发时依赖注入错误"""
+
+    def __init__(self):
+        self.ExceptInfo = f"触发时依赖注入错误"
+
+    def __str__(self):
+        return self.ExceptInfo
+
+
+class UsageNotCorrectException(MarketException):
+    """物品用法不正确"""
+
+    def __init__(self):
+        self.ExceptInfo = f"物品用法不正确"
+
+    def __str__(self):
+        return self.ExceptInfo
