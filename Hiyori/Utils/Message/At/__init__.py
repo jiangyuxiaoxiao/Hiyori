@@ -18,3 +18,8 @@ def GetAtQQs(message: str) -> list[int]:
         if element.isdigit():
             result.append(int(element))
     return result
+
+
+def clearAt(message: str) -> str:
+    message = re.sub(r"\[CQ:at,qq=[0-9]+]", string=message, repl="")
+    return message

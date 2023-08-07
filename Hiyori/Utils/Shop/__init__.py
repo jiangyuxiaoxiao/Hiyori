@@ -9,7 +9,7 @@ from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 from nonebot.adapters import Bot, Event
 import nonebot.adapters.onebot.v11 as onebotV11
-from Hiyori.Utils.Exception.MarketException import *
+from Hiyori.Utils.Exception.Market import *
 from Hiyori.Utils.Database import DB_User, DB_Item
 
 
@@ -94,7 +94,16 @@ class Item:
             else:
                 msg = f"需要指定使用对象"
             await matcher.send(msg)
-
+            raise UsageNotCorrectException()
+        # 最少使用一个
+        if Num <= 0:
+            # 多适配器判断
+            if isinstance(event, onebotV11.Event):
+                msg = onebotV11.MessageSegment.at(QQ) + f"至少需要使用一个{self.name}哦"
+            else:
+                msg = f"至少需要使用一个{self.name}哦"
+            await matcher.send(msg)
+            raise UsageNotCorrectException()
         # 使用的物品数量大于持有的物品数量
         item = DB_Item.getUserItem(QQ=QQ, ItemName=self.name)
         if item.Quantity < Num:
@@ -111,7 +120,8 @@ class Item:
         msg = self.description
         await matcher.send(msg)
 
-    async def afterUse(self, QQ: int, Targets: list[int] = None, Num: int = 0, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
+    async def afterUse(self, QQ: int, Targets: list[int] = None, Num: int = 0, bot: Bot = None, event: Event = None, matcher: Matcher = None,
+                       state: T_State = None):
         """使用后触发函数"""
         pass
 
@@ -149,7 +159,7 @@ class Shops:
 
 def 折扣系数计算(QQ: int, ItemName: str) -> float:
     # if ItemName in Shops.shops["群友"].items.keys() or ItemName in Shops.shops["妃爱"].items.keys():
-    if ItemName in Shops.shops["妃爱商店"].items.keys():
+    if ItemName in Shops.shops["妃爱商店"].items.keys() or ItemName in Shops.shops["群友商店"].items.keys():
         if DB_Item.hasItem(QQ=QQ, ItemName="白银会员卡"):
             return 0.9
     return 1

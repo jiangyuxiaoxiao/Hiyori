@@ -42,7 +42,7 @@ class SlaveUtils:
     # 保存额外信息
     @staticmethod
     def SaveExtraInfo(slave: Slave, ExtraInfoDict: dict[any, any]):
-        slave.Extra = json.dumps(ExtraInfoDict)
+        slave.Extra = json.dumps(ExtraInfoDict, ensure_ascii=False)
         slave.save()
         return
 
@@ -52,7 +52,7 @@ class SlaveUtils:
         result = json.loads(str(slave.Skill))
         if "skills" not in result.keys():
             result["skills"] = []
-            slave.Skill = json.dumps(result)
+            slave.Skill = json.dumps(result, ensure_ascii=False)
             slave.save()
         return result["skills"]
 
@@ -61,7 +61,7 @@ class SlaveUtils:
     def SaveSkillInfo(slave: Slave, SkillInfoList: list):
         result = json.loads(str(slave.Skill))
         result["skills"] = SkillInfoList
-        slave.Skill = json.dumps(result)
+        slave.Skill = json.dumps(result, ensure_ascii=False)
         slave.save()
         return
 
@@ -210,6 +210,6 @@ class CartUtils:
     @staticmethod
     def WriteInfo(info: dict[str, dict[str, list[int]]]):
         with open(file=SlaveConfig.CartFile, mode="w+", encoding="utf-8") as file:
-            info = json.dumps(info, indent=2)
+            info = json.dumps(info, indent=2, ensure_ascii=False)
             file.write(info)
             return

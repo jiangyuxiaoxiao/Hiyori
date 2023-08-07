@@ -5,7 +5,7 @@
 @Desc: 自定义异常
 @Ver : 1.0.0
 """
-from .MarketException import MarketException
+from .Market import MarketException
 
 
 class ConfigException(BaseException):
