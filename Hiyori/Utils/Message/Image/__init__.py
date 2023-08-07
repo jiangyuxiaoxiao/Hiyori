@@ -25,6 +25,14 @@ ModeType = Literal[
     "1", "CMYK", "F", "HSV", "I", "L", "LAB", "P", "RGB", "RGBA", "RGBX", "YCbCr"
 ]
 
+def face(id_: int) -> MessageSegment:
+    """
+    说明:
+        生成一个 MessageSegment.face 消息
+    参数:
+        :param id_: 表情id
+    """
+    return MessageSegment.face(id_)
 
 def get_message_img(data: Union[str, Message]) -> List[str]:
     """
