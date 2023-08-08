@@ -38,6 +38,7 @@ class MultiBotConfig(Config):
             self.priority: list[str] = config["默认优先顺序"]
             self.rule: dict[str, str] = config["群组规则"]
             self.groupSet: dict[str, set[str]] = {}  # 检查对应Bot是否在群组中，key=Bot_QQ, value=群组set
+            self.activeBots: set[str] = set()  # 检查对应Bot是否已注册成功
 
     def dump(self):
         """导出到配置文件中"""

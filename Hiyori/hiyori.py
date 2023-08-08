@@ -13,6 +13,8 @@ from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.plugin import _plugins
 
+from Hiyori.Utils.File import DirExist
+
 # 程序开始时间
 startTime = time.time_ns()
 
@@ -37,10 +39,16 @@ app = nonebot.get_asgi()
 driver = nonebot.get_driver()
 driver.register_adapter(ONEBOT_V11Adapter)
 
+configDict = driver.config.dict()
+if "save_log_level" not in configDict.keys():
+    save_log_level = "ERROR"
+else:
+    save_log_level = configDict["save_log_level"]
+DirExist("Log")
+logger.add("Log/{time}.log", level=save_log_level, rotation="00:00")
 # 根据初始化配置选择插件目录配置文件进行初始化
 # 默认配置文件路径为./plugin.dev.json
 # 根据在.env中的环境设置，进行更新
-configDict = driver.config.dict()
 if "environment" not in configDict.keys():
     plugin_dir = "plugin.dev.json"
 else:
