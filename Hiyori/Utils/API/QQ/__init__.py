@@ -5,8 +5,10 @@
 @Desc: QQ服务封装
 @Ver : 1.0.0
 """
+import httpx
 from nonebot.adapters.onebot.v11 import Bot
 from Hiyori.Utils.Database import DB_User
+from typing import Optional
 
 
 async def GetQQGrouperName(bot: Bot, QQ: int, Group: int, no_cache: bool = False) -> str:
@@ -43,8 +45,23 @@ async def GetQQStrangerName(bot: Bot, QQ: int, no_cache: bool = False) -> str:
     Info = await bot.get_stranger_info(user_id=QQ, no_cache=no_cache)
     return Info["nickname"]
 
+async def GetQQAvatarB64(qq: int) -> Optional[bytes]:
+    """
+    说明:
+        快捷获取用户头像的Base64编码
+    参数:
+        :param qq: qq号
+    """
+    url = f"http://q1.qlogo.cn/g?b=qq&nk={qq}&s=160"
+    async with httpx.AsyncClient() as client:
+        for _ in range(3):
+            try:
+                return (await client.get(url)).content
+            except TimeoutError:
+                pass
+    return None
 
-def GetQQAvatarUrl(QQ: int, Size: int = 640) -> str:
+async def GetQQAvatarUrl(QQ: int, Size: int = 640) -> str:
     """
     获取QQ头像Url，默认大小640*640。
 

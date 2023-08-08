@@ -5,7 +5,8 @@
 @Desc: 戳戳动作
 @Ver : 1.0.0
 """
-from nonebot.adapters.onebot.v11 import PokeNotifyEvent, MessageSegment, Bot
+import random
+from nonebot.adapters.onebot.v11 import PokeNotifyEvent, Bot
 from nonebot import on_notice
 from Hiyori.Utils.Priority import Priority
 from nonebot.plugin import PluginMetadata
@@ -23,6 +24,14 @@ __plugin_meta__ = PluginMetadata(
     },
 )
 
+poke__reply = [
+    "不要戳妃爱啦！>_<",
+    "你再戳！",
+    "？再戳试试？",
+    "再戳一下试试？",
+    "呼~妃爱睡着了"
+]
+
 poke = on_notice(priority=Priority.普通优先级, block=False)
 
 
@@ -33,5 +42,5 @@ async def _(bot: Bot, event: PokeNotifyEvent):
         GroupID = event.group_id
         message = f"[CQ:poke,qq={QQ}]"
         await bot.call_api("send_group_msg", **{"group_id": GroupID, "message": message})
-        message = "不要戳妃爱啦！>_<"
+        message = random.choice(poke__reply)
         await bot.call_api("send_group_msg", **{"group_id": GroupID, "message": message})
