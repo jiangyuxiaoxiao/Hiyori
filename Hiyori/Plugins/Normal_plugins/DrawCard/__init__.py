@@ -17,7 +17,6 @@ from nonebot.plugin import PluginMetadata
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_apscheduler import scheduler
 
 from .handles.azur_handle import AzurHandle
-from .handles.ba_handle import BaHandle
 from .handles.base_handle import BaseHandle
 from .handles.fgo_handle import FgoHandle
 from .handles.genshin_handle import GenshinHandle
@@ -132,13 +131,7 @@ games = (
         True,
         "PRTS_FLAG",
         reload_time=4,
-    ),
-    Game(
-        {"ba", "碧蓝档案"},
-        BaHandle(),
-        True,
-        "BA_FLAG",
-    ),
+    )
 )
 
 
