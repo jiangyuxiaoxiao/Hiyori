@@ -87,13 +87,6 @@ class OnmyojiConfig(BaseModel, extra=Extra.ignore):
     ONMYOJI_R: float = 0.7875
 
 
-# 碧蓝档案
-class BaConfig(BaseModel, extra=Extra.ignore):
-    BA_THREE_P: float = 0.025
-    BA_TWO_P: float = 0.185
-    BA_ONE_P: float = 0.79
-    BA_G_TWO_P: float = 0.975
-
 
 class Config(BaseModel, extra=Extra.ignore):
     # 开关
@@ -120,7 +113,6 @@ class Config(BaseModel, extra=Extra.ignore):
     azur: AzurConfig = AzurConfig()
     fgo: FgoConfig = FgoConfig()
     onmyoji: OnmyojiConfig = OnmyojiConfig()
-    ba: BaConfig = BaConfig()
 
 
 driver = nonebot.get_driver()
