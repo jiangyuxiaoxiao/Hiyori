@@ -6,6 +6,7 @@
 @Ver : 1.0.0
 """
 from Hiyori.Utils.Database.slaveMarket import Slave, DB_slave
+from Hiyori.Utils.File import DirExist, JsonFileExist
 from .config import SlaveConfig
 import json
 import numpy
@@ -202,13 +203,16 @@ class CartUtils:
     # 用于购物车读取写入
     @staticmethod
     def ReadInfo() -> dict[str, dict[str, list[int]]]:
-
+        DirExist(SlaveConfig.CartDir)
+        JsonFileExist(SlaveConfig.CartFile)
         with open(file=SlaveConfig.CartFile, mode="r+", encoding="utf-8") as file:
             info = file.read()
             return json.loads(info)
 
     @staticmethod
     def WriteInfo(info: dict[str, dict[str, list[int]]]):
+        DirExist(SlaveConfig.CartDir)
+        JsonFileExist(SlaveConfig.CartFile)
         with open(file=SlaveConfig.CartFile, mode="w+", encoding="utf-8") as file:
             info = json.dumps(info, indent=2, ensure_ascii=False)
             file.write(info)

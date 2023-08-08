@@ -9,6 +9,8 @@ import nonebot
 import json
 import sys
 import time
+import os
+import shutil
 from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.plugin import _plugins
@@ -17,7 +19,10 @@ from Hiyori.Utils.File import DirExist
 
 # 程序开始时间
 startTime = time.time_ns()
-
+# docker初始化
+DockerStart = True
+if os.path.isdir("/DockerStart") and DockerStart:
+    shutil.move("/DockerStart", "/Data")
 # 插件目录加载进环境变量
 sys.path.append("../")
 sys.path.append("./Plugins/Basic_plugins")  # 底层实现插件，管理类插件，请在加载时置于最顶层
