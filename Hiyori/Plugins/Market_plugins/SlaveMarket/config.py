@@ -23,3 +23,4 @@ class SlaveConfig:
     MaxSlaveIncome = 200
     # 购物车目录
     CartFile = "./Data/SlaveMarket/ShoppingCart.json"
+    CartDir = "./Data/SlaveMarket/ShoppingCart"
