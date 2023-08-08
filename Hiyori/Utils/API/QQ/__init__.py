@@ -17,7 +17,7 @@ async def GetQQGrouperName(bot: Bot, QQ: int, Group: int, no_cache: bool = False
     :param QQ: QQ号
     :param Group: 群号
     :param no_cache: 是否使用缓存
-    :return:
+    :return: 名称
     """
     # 设置了昵称则直接返回
     User = DB_User.getUser(QQ=QQ)

@@ -17,6 +17,7 @@ import nonebot.adapters.onebot.v11 as onebotV11
 from Hiyori.Utils.Database import DB_User, DB_slave, DB_Item
 from Hiyori.Utils.Shop.items import UniqueItem, SingleItem
 from Hiyori.Utils.Shop import Item
+from Hiyori.Utils.Shop.decorators import singleItem
 from Hiyori.Utils.API.QQ import GetQQGrouperName
 from Hiyori.Utils.Exception.Market import *
 

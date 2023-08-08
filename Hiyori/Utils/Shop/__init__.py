@@ -162,4 +162,6 @@ def 折扣系数计算(QQ: int, ItemName: str) -> float:
     if ItemName in Shops.shops["妃爱商店"].items.keys() or ItemName in Shops.shops["群友商店"].items.keys():
         if DB_Item.hasItem(QQ=QQ, ItemName="白银会员卡"):
             return 0.9
+        if DB_Item.hasItem(QQ=QQ, ItemName="萝了吗白银会员卡"):
+            return 0.9
     return 1

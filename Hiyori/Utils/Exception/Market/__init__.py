@@ -82,3 +82,13 @@ class UsageNotCorrectException(MarketException):
 
     def __str__(self):
         return self.ExceptInfo
+
+
+class UniqueItemException(MarketException):
+    """唯一物品不可重复购买"""
+
+    def __init__(self):
+        self.ExceptInfo = f"唯一物品不可重复购买。"
+
+    def __str__(self):
+        return self.ExceptInfo
