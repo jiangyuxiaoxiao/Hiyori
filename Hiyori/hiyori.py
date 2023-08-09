@@ -14,15 +14,13 @@ import shutil
 from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.plugin import _plugins
-
-from Hiyori.Utils.File import DirExist
+from datetime import datetime
 
 # 程序开始时间
 startTime = time.time_ns()
 # docker初始化
 DockerStart = True
-if os.path.isdir("/DockerStart") and DockerStart:
-    shutil.move("/DockerStart", "/Data")
+# ...
 # 插件目录加载进环境变量
 sys.path.append("../")
 sys.path.append("./Plugins/Basic_plugins")  # 底层实现插件，管理类插件，请在加载时置于最顶层
@@ -49,8 +47,10 @@ if "save_log_level" not in configDict.keys():
     save_log_level = "ERROR"
 else:
     save_log_level = configDict["save_log_level"]
-DirExist("Log")
-logger.add("Log/{time}.log", level=save_log_level, rotation="00:00")
+if not os.path.isdir("Log"):
+    os.makedirs("Log")
+now = datetime.now().strftime("%Y-%m-%d")
+logger.add(f"Log/{now}.log", level=save_log_level, rotation="00:00")
 # 根据初始化配置选择插件目录配置文件进行初始化
 # 默认配置文件路径为./plugin.dev.json
 # 根据在.env中的环境设置，进行更新
