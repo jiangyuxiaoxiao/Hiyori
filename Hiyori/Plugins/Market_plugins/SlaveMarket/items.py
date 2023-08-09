@@ -223,6 +223,7 @@ class 灵魂宝石(UniqueItem):
         if "魔女狩猎" not in SkillInfo:
             SkillInfo.append("魔女狩猎")
         SlaveUtils.SaveSkillInfo(slave=slave, SkillInfoList=SkillInfo)
+        name = await GetQQGrouperName(bot=bot, QQ=QQ, Group=GroupID)
         msg = f"【{name}】与名为丘比的神秘生物签订了魔法契约获得了强大的力量。然而，奇迹与魔法并不是免费的，" \
               "祈求希望的同时也会散布同样分量的绝望。。。"
         await matcher.send(msg)
