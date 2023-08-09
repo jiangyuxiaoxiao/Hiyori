@@ -17,9 +17,8 @@ from Hiyori.Utils.Message.Text import get_message_text
 from Hiyori.Utils.Database import DB_User
 
 from .data_source import get_chat_result, hello, no_result
-from Hiyori.Utils.Priority import Priority
 
-ai = on_message(rule=to_me(), priority=Priority.低优先级)
+ai = on_message(rule=to_me(), priority=998)
 
 
 @ai.handle()

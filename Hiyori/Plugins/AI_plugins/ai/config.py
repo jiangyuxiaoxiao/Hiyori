@@ -12,5 +12,6 @@ NICKNAME = ["妃爱酱"]
 DATA_PATH = Path() / "Data" / "ai"
 IMAGE_PATH = Path() / "Data" / "ai" / "images"
 TL_KEY = ""
-ALAPI_TOKEN = "OvYVzi93slKCLg4S"
+#通过https://saucenao.com/user.php?page=search-api注册以获取
+ALAPI_TOKEN = ""
 ALAPI_AI_CHECK = False
