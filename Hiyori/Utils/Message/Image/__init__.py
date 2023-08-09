@@ -14,6 +14,8 @@ import uuid
 from io import BytesIO
 from pathlib import Path
 from PIL.ImageFont import FreeTypeFont
+import imagehash
+from imagehash import ImageHash
 from typing import List, Literal, Optional, Tuple, Union
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -24,6 +26,18 @@ FONT_PATH = Path() / "Data" / "fonts"
 ModeType = Literal[
     "1", "CMYK", "F", "HSV", "I", "L", "LAB", "P", "RGB", "RGBA", "RGBX", "YCbCr"
 ]
+
+def get_img_hash(image_file: Union[str, Path]) -> ImageHash:
+    """
+    说明:
+        获取图片的hash值
+    参数:
+        :param image_file: 图片文件路径
+    """
+    with open(image_file, "rb") as fp:
+        hash_value = imagehash.average_hash(Image.open(fp))
+    return hash_value
+
 
 def face(id_: int) -> MessageSegment:
     """

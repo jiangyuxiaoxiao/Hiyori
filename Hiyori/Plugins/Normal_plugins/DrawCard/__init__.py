@@ -13,11 +13,10 @@ from nonebot.params import RegexGroup
 from nonebot.permission import SUPERUSER
 from nonebot.typing import T_Handler
 from nonebot.plugin import PluginMetadata
-from Hiyori.Utils.Priority import Priority
+
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_apscheduler import scheduler
 
 from .handles.azur_handle import AzurHandle
-from .handles.ba_handle import BaHandle
 from .handles.base_handle import BaseHandle
 from .handles.fgo_handle import FgoHandle
 from .handles.genshin_handle import GenshinHandle
@@ -44,7 +43,6 @@ __drawcard_usages__ = """
     碧蓝航线/碧蓝[重型/轻型/特型/活动][1-300]抽: 碧蓝航线重型/轻型/特型/活动卡池
     fgo[1-300]抽: fgo卡池
     阴阳师[1-300]抽: 阴阳师卡池
-    ba/碧蓝档案[1-200]抽：碧蓝档案卡池暂不可用
 * 以上指令可以通过 XX一井 来指定最大抽取数量 *
 * 示例：原神一井 *
 """.strip()
@@ -133,13 +131,7 @@ games = (
         True,
         "PRTS_FLAG",
         reload_time=4,
-    ),
-    Game(
-        {"ba", "碧蓝档案"},
-        BaHandle(),
-        True,
-        "BA_FLAG",
-    ),
+    )
 )
 
 
