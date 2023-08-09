@@ -14,7 +14,6 @@ from nonebot.adapters.onebot.v11.permission import GROUP
 from Hiyori.Utils.Message.Image import get_message_img, get_img_hash, ImageMessage
 from Hiyori.Utils.Message.Text import get_message_text
 from Hiyori.Utils.Spider.Http import AsyncHttpx
-from Hiyori.Utils.Priority import Priority
 
 
 class Fudu:
@@ -58,7 +57,7 @@ class Fudu:
 _fudu_list = Fudu()
 
 
-fudu = on_message(permission=GROUP, priority=Priority.低优先级)
+fudu = on_message(permission=GROUP, priority=999)
 
 
 @fudu.handle()
