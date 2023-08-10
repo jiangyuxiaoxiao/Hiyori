@@ -1,7 +1,7 @@
 FROM python:3.10.12-bookworm
 COPY ./Hiyori/Plugins /app/Hiyori/Plugins
 COPY ./Hiyori/Utils /app/Hiyori/Utils
-COPY ./Hiyori/Data /app/Hiyori/DockerStart
+COPY ./Hiyori/Data /app/Hiyori/Data
 COPY ./Hiyori/.env /app/Hiyori/
 COPY ./Hiyori/.env.prod /app/Hiyori/
 COPY ./Hiyori/plugin.prod.json /app/Hiyori

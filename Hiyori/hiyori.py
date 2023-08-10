@@ -18,9 +18,7 @@ from datetime import datetime
 
 # 程序开始时间
 startTime = time.time_ns()
-# docker初始化
-DockerStart = True
-# ...
+
 # 插件目录加载进环境变量
 sys.path.append("../")
 sys.path.append("./Plugins/Basic_plugins")  # 底层实现插件，管理类插件，请在加载时置于最顶层
