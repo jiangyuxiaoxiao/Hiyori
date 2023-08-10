@@ -65,7 +65,7 @@ async def 功能调用CD检查(matcher: Matcher, bot: Bot, event: Event):
         timeBefore = datetime.datetime.strptime(UsersCD[QQ].lastTime, "%Y-%m-%d %H:%M:%S")
         timeNow = datetime.datetime.now()
         seconds = (timeNow - timeBefore).seconds
-        logger.debug(f"Personal Weight:【{QQ}】 seconds:{seconds},CD{UsersCD[QQ].CD},Max_CD{User.CD * 计算周期}")
+        logger.debug(f"个人触发CD累积：【{QQ}】 seconds:{seconds},CD{UsersCD[QQ].CD},Max_CD{User.CD * 计算周期}")
         if seconds >= 计算周期 * 60:
             # 对于第一次响应，无论权重大小，均会响应
             UsersCD[QQ].lastTime = Time
@@ -93,7 +93,7 @@ async def 功能调用CD检查(matcher: Matcher, bot: Bot, event: Event):
         timeBefore = datetime.datetime.strptime(GroupsCD[GroupID].lastTime, "%Y-%m-%d %H:%M:%S")
         timeNow = datetime.datetime.now()
         seconds = (timeNow - timeBefore).seconds
-        logger.debug(f"Group Weight:【{GroupID}】 seconds:{seconds},CD{GroupsCD[GroupID].CD},Max_CD{Group.CD * 计算周期}")
+        logger.debug(f"群组触发CD累积：【{GroupID}】 seconds:{seconds},CD{GroupsCD[GroupID].CD},Max_CD{Group.CD * 计算周期}")
         if seconds >= 计算周期 * 60:
             # 对于第一次响应，无论权重大小，均会响应
             GroupsCD[GroupID].lastTime = Time

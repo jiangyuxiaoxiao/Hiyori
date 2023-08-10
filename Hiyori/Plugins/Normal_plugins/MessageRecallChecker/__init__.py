@@ -11,6 +11,7 @@ from nonebot.log import logger
 from Hiyori.Utils.Priority import Priority
 import random
 from nonebot.plugin import PluginMetadata
+from .rule import isGroupRecallNoticeEvent
 
 __plugin_meta__ = PluginMetadata(
     name="撤回检查！",
@@ -25,7 +26,7 @@ __plugin_meta__ = PluginMetadata(
     },
 )
 概率 = 20  # 100/1000
-recallChecker = on_notice(priority=Priority.低优先级, block=False)
+recallChecker = on_notice(priority=Priority.低优先级, rule=isGroupRecallNoticeEvent, block=False)
 
 
 @recallChecker.handle()

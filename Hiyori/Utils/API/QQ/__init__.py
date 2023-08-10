@@ -45,6 +45,7 @@ async def GetQQStrangerName(bot: Bot, QQ: int, no_cache: bool = False) -> str:
     Info = await bot.get_stranger_info(user_id=QQ, no_cache=no_cache)
     return Info["nickname"]
 
+
 async def GetQQAvatarB64(qq: int) -> Optional[bytes]:
     """
     说明:
@@ -60,6 +61,7 @@ async def GetQQAvatarB64(qq: int) -> Optional[bytes]:
             except TimeoutError:
                 pass
     return None
+
 
 async def GetQQAvatarUrl(QQ: int, Size: int = 640) -> str:
     """

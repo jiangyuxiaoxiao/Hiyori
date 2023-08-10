@@ -10,6 +10,7 @@ from nonebot.adapters.onebot.v11 import PokeNotifyEvent, Bot
 from nonebot import on_notice
 from Hiyori.Utils.Priority import Priority
 from nonebot.plugin import PluginMetadata
+from .rule import isPokeEvent
 
 __plugin_meta__ = PluginMetadata(
     name="戳一戳",
@@ -32,7 +33,7 @@ poke__reply = [
     "呼~妃爱睡着了"
 ]
 
-poke = on_notice(priority=Priority.普通优先级, block=False)
+poke = on_notice(priority=Priority.普通优先级, rule=isPokeEvent, block=False)
 
 
 @poke.handle()
