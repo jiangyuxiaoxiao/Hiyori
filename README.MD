@@ -45,10 +45,13 @@
 
 ### windows启动
 
-+ 下载配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)及[qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign) 注意：当前Go-cqhttp仅支持qsign 1.1.0（2023/08/11）
 + 安装Python3.10
-+ 下载妃爱
++ 下载妃爱release包
++ 配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)的config.yml，填写QQ号与密码
++ 点击 `Qsign，启动！.bat`
 + 点击 `妃爱，启动！.bat`
++ 等待Qsign服务开始
++ 点击 `CQHTTP，启动！.bat`
 
 ### linux启动
 
