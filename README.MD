@@ -42,9 +42,26 @@
     + ...
 
 ## 妃爱，启动！
-+ 安装Python310
-+ 下载release文件
-+ 配置虚拟环境，并 `pip install requirements.txt`
+
+### windows启动
+
++ 下载配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)及[qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign) 注意：当前Go-cqhttp仅支持qsign 1.1.0（2023/08/11）
++ 安装Python3.10
++ 下载妃爱
++ 点击 `妃爱，启动！.bat`
+
+### linux启动
+
++ 下载配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)及[qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign) 注意：当前Go-cqhttp仅支持qsign 1.1.0（2023/08/11）
++ 安装Python3.10
++ 下载妃爱
++ 根据requirements.txt安装python环境
+
+```shell
+cd ./Hiyori
+python3 hiyori.py
+```
+
 ## Todo List
 
 + Web控制台
@@ -57,8 +74,8 @@
 + 市场功能新增
 + 冷却功能添加新特性：支持单日功能调用次数限制、支持单次调用间隔
 + 更多管理支持：
-  + 更多修改用户数据指令
-  + 预设情景支持
+    + 更多修改用户数据指令
+    + 预设情景支持
 + [x] 插件调用耗时统计
 + 更多物品
 + 更多互动事件
