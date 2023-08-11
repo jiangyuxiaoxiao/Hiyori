@@ -6,22 +6,26 @@
 @Ver : 1.0.0
 """
 import os.path
+import datetime
+import re
 
 from nonebot import on_regex
+from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot, MessageEvent
 from nonebot.typing import T_State
+from nonebot.plugin import PluginMetadata
+
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Database import DB_slave, DB_User
 from Hiyori.Utils.Message.Forward_Message import Nodes
 from Hiyori.Utils.API.QQ import GetQQGrouperName
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import html_to_pic, md_to_pic
-from nonebot.plugin import PluginMetadata
+from Hiyori.Utils.Matcher import logPluginExecuteTime
+
 from .config import SlaveConfig
 from .skills import ExecuteSkill, Jobs
 from .Utils import SlaveUtils, CartUtils
 from .slaveShop import SlaveShopInit
-import datetime
-import re
 
 __plugin_meta__ = PluginMetadata(
     name="群友市场",  # 用于在菜单显示 用于插件开关
@@ -78,7 +82,8 @@ async def _(event: MessageEvent):
 
 
 @checkMarket.handle()
-async def _(bot: Bot, event: GroupMessageEvent):
+@logPluginExecuteTime
+async def _(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
     message = str(event.message)
     message = re.sub(pattern=r"(^#查看群友市场)|(^#查询群友市场)|(^#群友市场)", repl="", string=message).strip()
     if message == "":
@@ -167,7 +172,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
     for html in htmls:
         pic = await html_to_pic(html=html, type="png", viewport={"width": 1440, "height": 2560})
         message = message + MessageSegment.image(pic)
-    await checkMarket.send(message)
+    await matcher.send(message)
 
 
 @buySlave.handle()

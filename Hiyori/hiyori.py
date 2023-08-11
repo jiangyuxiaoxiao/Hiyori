@@ -28,7 +28,6 @@ sys.path.append("Plugins/Normal_plugins")  # 普通功能插件
 sys.path.append("./Plugins/Personal_plugins")  # 私人插件
 sys.path.append("./Plugins/Market_plugins")  # 市场插件
 sys.path.append("./Plugins/AI_plugins")  # AI生成插件
-sys.path.append("./Plugins/API_plugins")  # 弃用
 sys.path.append("./Plugins/Web_plugins")  # 后端插件
 sys.path.append("./Plugins/Zao_plugins")  # zao插件
 

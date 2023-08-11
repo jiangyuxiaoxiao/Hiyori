@@ -7,22 +7,24 @@
 @Desc: 签到插件
 @Ver : 1.0.0
 """
+import datetime
+import random
+
+from nonebot.matcher import Matcher
 from nonebot import on_regex
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, Bot
 from nonebot import get_driver
 from nonebot.plugin import PluginMetadata
 from nonebot.log import logger
+
 from Hiyori.Utils.Database import DB_User, DB_Item
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
 from Hiyori.Utils.File import DirExist
 from Hiyori.Utils.Message.Image import ImageMessage
 from Hiyori.Utils.Spider.WebShot import Web2ImgBytes
+from Hiyori.Utils.Matcher import logPluginExecuteTime
 from .config import signInImages, Mode
-import datetime
-import random
-import pathlib
-import os
 
 __plugin_meta__ = PluginMetadata(
     name="签到",  # 用于在菜单显示 用于插件开关
@@ -59,6 +61,7 @@ DirExist("./Data/SignIn")
 
 
 @signIn.handle()
+@logPluginExecuteTime
 async def _(bot: Bot, event: MessageEvent):
     QQ = event.user_id
     User = DB_User.getUser(QQ)
@@ -215,7 +218,8 @@ async def _(bot: Bot, event: MessageEvent):
 
 
 @check.handle()
-async def _(event: MessageEvent):
+@logPluginExecuteTime
+async def check(matcher: Matcher, event: MessageEvent):
     QQ = event.user_id
     User = DB_User.getUser(QQ)
     LastSignIn = str(User.SignInDate)
@@ -232,5 +236,5 @@ async def _(event: MessageEvent):
     message = MessageSegment.at(event.user_id) + MessageSegment.text(f"你的存款为{User.Money / 100}妃爱币\n"
                                                                      f"妃爱对你的好感度为{User.Attitude}\n"
                                                                      f"已连续签到{ComboDay}天")
-    await check.send(message)
+    await matcher.send(message)
     return
