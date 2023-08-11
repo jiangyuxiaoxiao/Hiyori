@@ -24,6 +24,8 @@
 
 ## 简介
 
+超可爱的妃爱群聊机器人！
+
 ## 特色
 
 + 是超可爱的妃爱
@@ -55,7 +57,8 @@
 
 ### linux启动
 
-+ 下载配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)及[qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign) 注意：当前Go-cqhttp仅支持qsign 1.1.0（2023/08/11）
++ 下载配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)及[qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign) 注意：当前Go-cqhttp仅支持qsign
+  1.1.0（2023/08/11）
 + 安装Python3.10
 + 下载妃爱
 + 根据requirements.txt安装python环境
@@ -63,6 +66,41 @@
 ```shell
 cd ./Hiyori
 python3 hiyori.py
+```
+
+## 快速使用手册 
++ 超级管理员设置    
+在`.env.hiyori`中设置`SUPERUSERS=["你的QQ号"]`，可参考[Nonebot2配置文档](https://nonebot.dev/docs/appendices/config#superusers)
+
++ 黑名单管理
+  + 所有群聊默认为拉黑状态，超级管理员可以使用`#unban -g`指令进行解封
+  + 解封/拉黑对话所在群聊：`#unban -g`/`#ban -g`
+  + 解封/拉黑特定群聊：`#unban -g 群号`/`#ban -g 群号`
+  + 解封/拉黑指定人：`#unban -u QQ号`/`#ban -u QQ号` 或 `#unban -u @人`/`#ban -u @人`
+
++ 插件手册  
+`#帮助`
+
++ 设置群聊/用户的冷却权重  
+  `#change cd -u 权重数值` `#change cd -g 权重数值`  
+  用户默认权重20，群聊默认权重30。权重越大回复的上限频率越高
+
++ 多Bot连接配置
+  + 指令配置：在群聊中使用指令`妃爱启动 @指定bot`：该群聊默认由该bot进行响应
+  + 配置文件配置：修改`Hiyori/Data/MultiBot_Support/config.json`文件后重启。其中默认优先顺序为无群组规则时bot响应的优先顺序，配置文件书写示例如下所示：
+```json
+{
+  "默认优先顺序": [
+    "QQ号",
+    "QQ号",
+    "QQ号"
+  ],
+  "群组规则": {
+    "群号1": "QQ号",
+    "群号2": "QQ号",
+    "群号3": "QQ号"
+  }
+}
 ```
 
 ## Todo List
@@ -79,7 +117,7 @@ python3 hiyori.py
 + 更多管理支持：
     + 更多修改用户数据指令
     + 预设情景支持
-+ [x] 插件调用耗时统计
++ 插件调用耗时统计
 + 更多物品
 + 更多互动事件
 + 添加单元测试
