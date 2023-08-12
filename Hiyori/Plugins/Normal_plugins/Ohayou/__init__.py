@@ -48,7 +48,7 @@ async def Ohayou():
         if Group.Status == "off":
             continue
         # 插件关闭
-        if not pluginsManager.GroupPluginIsOn(GroupID=str(Group.GroupID), PluginName="亚托莉晚安"):
+        if not pluginsManager.GroupPluginIsOn(GroupID=str(Group.GroupID), PluginName="妃爱晚安"):
             continue
         else:
             try:
@@ -76,7 +76,7 @@ async def Oyasumi():
         if Group.Status == "off":
             continue
         # 插件关闭
-        if not pluginsManager.GroupPluginIsOn(GroupID=str(Group.GroupID), PluginName="亚托莉晚安"):
+        if not pluginsManager.GroupPluginIsOn(GroupID=str(Group.GroupID), PluginName="妃爱晚安"):
             continue
         else:
             try:
