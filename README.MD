@@ -4,10 +4,7 @@
     </a>
     <h1>Hiyori Bot</h1>
     <h3>基于Nonebot2框架的QQ聊天机器人</h3>
-    <a href="http://和泉妃爱.com">
-       项目文档
-    </a>
-    <p align="left">
+    <p align="center">
       <img alt="Static Badge" src="https://img.shields.io/badge/python-3.10+-blue">
       <a href="https://github.com/nonebot/nonebot2">
         <img alt="nonebot2-2.0.1" src="https://img.shields.io/badge/nonebot2-2.0.1-orange">
@@ -20,7 +17,9 @@
       </a>
       <img alt="go cqhttp-1.1.0" src="https://img.shields.io/badge/QQ群-471138696-orange">
     </p>  
-
+   <a href="http://和泉妃爱.com">
+       项目文档
+    </a>
 </div>
 
 ## 简介

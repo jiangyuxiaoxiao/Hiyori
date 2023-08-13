@@ -38,6 +38,7 @@
       "NickName",
 
       "Ohayou",
+      "Welcome",
 
       "nonebot_plugin_eitherchoice",
       "nonebot_plugin_imageutils",
@@ -52,7 +53,8 @@
       "nonebot_plugin_picmcstat",
       "nonebot_plugin_backup",
       "nonebot_plugin_remake",
-      "nonebot_plugin_today_waifu"
+      "nonebot_plugin_today_waifu",
+      "nonebot_plugin_tarot"
     ]
   }
 }

@@ -28,5 +28,6 @@ async def _(event: GroupIncreaseNoticeEvent):
     await welcome.send(message)
     message = "请输入 #帮助 来查看妃爱的具体功能，\n" \
               "输入 #查看更新 来查看妃爱的版本更新哦！\n\n" \
-              "希望领养妃爱的可以进群471138696了解\n"
+              "希望领养妃爱的可以进群471138696了解\n" \
+              "妃爱已开源，参考项目主页 https://github.com/jiangyuxiaoxiao/Hiyori 进行部署"
     await welcome.send(message)
