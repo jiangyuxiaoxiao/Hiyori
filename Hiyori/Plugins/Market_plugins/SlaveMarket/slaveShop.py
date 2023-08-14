@@ -12,13 +12,13 @@ from .items import *
 def SlaveShopInit():
     slaveShop = Shop(name="群友商店", description="出售群友市场相关的商品")
     slaveShop.addItem(
-        猫娘变身器(name="猫娘变身器", description="消耗品，神秘的粉色开关，隐隐约约飘出巧克力与香子兰的香气。使用后变成可爱的猫娘，颜值提升，体质下降。", price=1000))
+        猫娘变身器(name="猫娘变身器", description="消耗品，神秘的粉色开关，隐隐约约飘出巧克力与香子兰的香气。使用后变成可爱的猫娘，颜值+30，体质-15。", price=1000))
     slaveShop.addItem(
-        白丝连裤袜(name="白丝连裤袜", description="消耗品，香香的白丝，穿上后颜值提高。", price=2000))
+        白丝连裤袜(name="白丝连裤袜", description="消耗品，香香的白丝，穿上后颜值提高20。", price=2000))
     slaveShop.addItem(
         重开模拟器(name="重开模拟器", description="消耗品，使用后重新随机现代世界观的三维属性【颜值,智力,体质】。", price=200))
     slaveShop.addItem(
-        灵魂宝石(name="灵魂宝石", description="唯一性物品，可以签订契约成为魔法少女，提高自身的体质。", price=4000, need_attitude=400))
+        灵魂宝石(name="灵魂宝石", description="唯一性物品，可以签订契约成为魔法少女，提高自身的体质40。", price=4000, need_attitude=400))
     slaveShop.addItem(
         世界线演算装置(name="世界线演算装置", description="消耗品，使用后消耗背包所有的重开模拟器进行世界线演算后进入最优分支。", price=2000, need_attitude=200))
     slaveShop.addItem(

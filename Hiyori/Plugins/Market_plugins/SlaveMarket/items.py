@@ -129,24 +129,27 @@ class 猫娘变身器(SingleItem):
                 raise UsageNotCorrectException()
             ExtraInfo["现代世界观_人物标签"].append("猫娘")
 
-        # 使用物品
-        await self.consume(QQ=QQ, Num=1)
         # 添加buff
         if "现代世界观_BUFF" not in ExtraInfo.keys():
             ExtraInfo["现代世界观_BUFF"] = {
-                "颜值": 2.0,
-                "智力": 1.0,
-                "体质": 0.7
+                "颜值": 30,
+                "智力": 0,
+                "体质": -15,
+                "version": 3.2
             }
         else:
-            ExtraInfo["现代世界观_BUFF"]["颜值"] *= 2.0
-            ExtraInfo["现代世界观_BUFF"]["体质"] *= 0.7
+            ExtraInfo["现代世界观_BUFF"]["颜值"] = int(ExtraInfo["现代世界观_BUFF"]["颜值"] + 30)
+            ExtraInfo["现代世界观_BUFF"]["体质"] = int(ExtraInfo["现代世界观_BUFF"]["体质"] - 15)
         SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
+
         # 添加技能
         SkillInfo = SlaveUtils.GetSkillInfo(slave=slave)
         if "给我变" not in SkillInfo:
             SkillInfo.append("给我变")
         SlaveUtils.SaveSkillInfo(slave=slave, SkillInfoList=SkillInfo)
+
+        # 使用物品
+        await self.consume(QQ=QQ, Num=1)
         msg = f"一道光闪过，【{name}】变成了一只的猫娘，【{name}】看起来更可爱更娇弱了。"
         await matcher.send(msg)
 
@@ -173,14 +176,16 @@ class 白丝连裤袜(SingleItem):
         # 添加buff
         if "现代世界观_BUFF" not in ExtraInfo.keys():
             ExtraInfo["现代世界观_BUFF"] = {
-                "颜值": 1.5,
-                "智力": 1.0,
-                "体质": 1.0
+                "颜值": 20,
+                "智力": 0,
+                "体质": 0,
+                "version": 3.2
             }
         else:
-            ExtraInfo["现代世界观_BUFF"]["颜值"] *= 1.5
+            ExtraInfo["现代世界观_BUFF"]["颜值"] = int(ExtraInfo["现代世界观_BUFF"]["颜值"] + 20)
         SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
-        # 修改物品数量
+
+        # 使用物品
         await self.consume(QQ=QQ, Num=1)
 
         msg = f"【{name}】四处张望发现没人后，偷偷从包里摸出来一双白丝，轻轻展开，拉到膝盖处，再慢慢拉上大腿。" \
@@ -211,18 +216,21 @@ class 灵魂宝石(UniqueItem):
         # 添加buff
         if "现代世界观_BUFF" not in ExtraInfo.keys():
             ExtraInfo["现代世界观_BUFF"] = {
-                "颜值": 1.0,
-                "智力": 1.0,
-                "体质": 3.0
+                "颜值": 0,
+                "智力": 0,
+                "体质": 40,
+                "version": 3.2
             }
         else:
-            ExtraInfo["现代世界观_BUFF"]["体质"] *= 3.0
+            ExtraInfo["现代世界观_BUFF"]["体质"] = int(ExtraInfo["现代世界观_BUFF"]["体质"] + 40)
         SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
+
         # 添加技能
         SkillInfo = SlaveUtils.GetSkillInfo(slave=slave)
         if "魔女狩猎" not in SkillInfo:
             SkillInfo.append("魔女狩猎")
         SlaveUtils.SaveSkillInfo(slave=slave, SkillInfoList=SkillInfo)
+
         name = await GetQQGrouperName(bot=bot, QQ=QQ, Group=GroupID)
         msg = f"【{name}】与名为丘比的神秘生物签订了魔法契约获得了强大的力量。然而，奇迹与魔法并不是免费的，" \
               "祈求希望的同时也会散布同样分量的绝望。。。"

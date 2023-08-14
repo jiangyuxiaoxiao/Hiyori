@@ -5,16 +5,19 @@
 @Desc: 工具函数
 @Ver : 1.0.0
 """
-from Hiyori.Utils.Database.slaveMarket import Slave, DB_slave
-from Hiyori.Utils.File import DirExist, JsonFileExist
-from .config import SlaveConfig
 import json
 import numpy
 import scipy
+import warnings
 from datetime import datetime
+
+from Hiyori.Utils.Database.slaveMarket import Slave, DB_slave
+from Hiyori.Utils.File import DirExist, JsonFileExist
+from .config import SlaveConfig
 
 
 def 正态修正(均值: float, 标准差: float, 原值: float, 变化倍数: float) -> float:
+    warnings.warn("Atri2.0版本使用属性计算函数，现已弃用", DeprecationWarning)
     if 变化倍数 >= 1:
         原排名比例 = 1 - scipy.stats.norm.cdf(原值, loc=均值, scale=标准差)
         新排名比例 = 原排名比例 / 变化倍数
@@ -93,10 +96,11 @@ class SlaveUtils:
     @staticmethod
     def 获取现代世界观属性(slave: Slave) -> list:
         """
+        TODO 更新 迁移到3.2版本 并提供了老版本的转换方式
         获取对应人物的现代世界观属性，若无则进行生成。
 
         :param slave: 对应人物实例
-        :return: 属性字典
+        :return: 属性字典[颜值, 智力, 体质]
         """
         ExtraInfo = SlaveUtils.GetExtraInfo(slave)
         # 字段补充1
@@ -112,25 +116,51 @@ class SlaveUtils:
                 "颜值": int(attributes[0]),
                 "智力": int(attributes[1]),
                 "体质": int(attributes[2]),
-                "version": 2.0
+                "version": 3.2
             }
             SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
         # 字段补充2
         if "现代世界观_BUFF" not in ExtraInfo.keys():
             ExtraInfo["现代世界观_BUFF"] = {
-                "颜值": 1.0,
-                "智力": 1.0,
-                "体质": 1.0
+                "颜值": 0,
+                "智力": 0,
+                "体质": 0,
+                "version": 3.2
             }
             SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
-        # 老版本更正
+        # 字段修正
+        if ExtraInfo["现代世界观_通常属性"]["version"] != 3.2:
+            ExtraInfo["现代世界观_通常属性"]["version"] = 3.2
+            ExtraInfo["现代世界观_BUFF"]["version"] = 3.2
+            ExtraInfo["现代世界观_BUFF"]["颜值"] = 0
+            ExtraInfo["现代世界观_BUFF"]["体质"] = 0
+            ExtraInfo["现代世界观_BUFF"]["颜值"] = 0
+            # 检索标签
+            if "现代世界观_人物标签" not in ExtraInfo.keys():
+                ExtraInfo["现代世界观_人物标签"] = []
+            else:
+                tags = ExtraInfo["现代世界观_人物标签"]
+                for tag in tags:
+                    match tag:
+                        case "猫娘":
+                            ExtraInfo["现代世界观_BUFF"]["颜值"] = int(ExtraInfo["现代世界观_BUFF"]["颜值"] + 30)
+                            ExtraInfo["现代世界观_BUFF"]["体质"] = int(ExtraInfo["现代世界观_BUFF"]["体质"] - 15)
+                        case "魔法少女":
+                            ExtraInfo["现代世界观_BUFF"]["体质"] = int(ExtraInfo["现代世界观_BUFF"]["体质"] + 40)
+                        case "白丝jiojio":
+                            ExtraInfo["现代世界观_BUFF"]["颜值"] = int(ExtraInfo["现代世界观_BUFF"]["颜值"] + 20)
+            SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
+
+        """
+        # 1.0 → 2.0老版本更正
         if "version" not in ExtraInfo["现代世界观_通常属性"].keys():
             ExtraInfo["现代世界观_通常属性"]["颜值"] *= 2
             ExtraInfo["现代世界观_通常属性"]["智力"] *= 2
             ExtraInfo["现代世界观_通常属性"]["体质"] *= 2
             ExtraInfo["现代世界观_通常属性"]["version"] = 2.0
             SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
-        # buff补正
+        
+        # 2.0老版本属性计算
         if ExtraInfo["现代世界观_BUFF"]["颜值"] != 1.0:
             颜值 = int(
                 正态修正(100, 20, ExtraInfo["现代世界观_通常属性"]["颜值"], ExtraInfo["现代世界观_BUFF"]["颜值"]))
@@ -146,7 +176,10 @@ class SlaveUtils:
                 正态修正(100, 20, ExtraInfo["现代世界观_通常属性"]["体质"], ExtraInfo["现代世界观_BUFF"]["体质"]))
         else:
             体质 = ExtraInfo["现代世界观_通常属性"]["体质"]
-        return [颜值, 智力, 体质]
+        """
+        return [int(ExtraInfo["现代世界观_通常属性"]["颜值"] + ExtraInfo["现代世界观_BUFF"]["颜值"]),
+                int(ExtraInfo["现代世界观_通常属性"]["智力"] + ExtraInfo["现代世界观_BUFF"]["智力"]),
+                int(ExtraInfo["现代世界观_通常属性"]["体质"] + ExtraInfo["现代世界观_BUFF"]["体质"])]
 
     # 默认字段补全
     @staticmethod
