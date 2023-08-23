@@ -17,7 +17,7 @@ from .config import SlaveConfig
 
 
 def 正态修正(均值: float, 标准差: float, 原值: float, 变化倍数: float) -> float:
-    warnings.warn("Atri2.0版本使用属性计算函数，现已弃用", DeprecationWarning)
+    warnings.warn("2.0 使用属性计算函数，现已弃用", DeprecationWarning)
     if 变化倍数 >= 1:
         原排名比例 = 1 - scipy.stats.norm.cdf(原值, loc=均值, scale=标准差)
         新排名比例 = 原排名比例 / 变化倍数
@@ -75,14 +75,6 @@ class SlaveUtils:
         # 现代世界观相关
         attribute = SlaveUtils.获取现代世界观属性(slave)
         result = f"颜值{attribute[0]} 智力{attribute[1]} 体质{attribute[2]}"
-        # 人物技能相关
-        """
-        skills = SlaveUtils.GetSkillInfo(slave)
-        if len(skills) != 0:
-            result += f"<br> 特殊能力："
-            for skill in skills:
-                result += f"【{skill}】 "
-        """
         # 人物标签相关
         Extra = SlaveUtils.GetExtraInfo(slave)
         if "现代世界观_人物标签" in Extra.keys():
@@ -96,7 +88,7 @@ class SlaveUtils:
     @staticmethod
     def 获取现代世界观属性(slave: Slave) -> list:
         """
-        TODO 更新 迁移到3.2版本 并提供了老版本的转换方式
+        更新 迁移到3.2版本 并提供了老版本的转换方式
         获取对应人物的现代世界观属性，若无则进行生成。
 
         :param slave: 对应人物实例
@@ -151,32 +143,6 @@ class SlaveUtils:
                             ExtraInfo["现代世界观_BUFF"]["颜值"] = int(ExtraInfo["现代世界观_BUFF"]["颜值"] + 20)
             SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
 
-        """
-        # 1.0 → 2.0老版本更正
-        if "version" not in ExtraInfo["现代世界观_通常属性"].keys():
-            ExtraInfo["现代世界观_通常属性"]["颜值"] *= 2
-            ExtraInfo["现代世界观_通常属性"]["智力"] *= 2
-            ExtraInfo["现代世界观_通常属性"]["体质"] *= 2
-            ExtraInfo["现代世界观_通常属性"]["version"] = 2.0
-            SlaveUtils.SaveExtraInfo(slave, ExtraInfo)
-        
-        # 2.0老版本属性计算
-        if ExtraInfo["现代世界观_BUFF"]["颜值"] != 1.0:
-            颜值 = int(
-                正态修正(100, 20, ExtraInfo["现代世界观_通常属性"]["颜值"], ExtraInfo["现代世界观_BUFF"]["颜值"]))
-        else:
-            颜值 = ExtraInfo["现代世界观_通常属性"]["颜值"]
-        if ExtraInfo["现代世界观_BUFF"]["智力"] != 1.0:
-            智力 = int(
-                正态修正(100, 20, ExtraInfo["现代世界观_通常属性"]["智力"], ExtraInfo["现代世界观_BUFF"]["智力"]))
-        else:
-            智力 = ExtraInfo["现代世界观_通常属性"]["智力"]
-        if ExtraInfo["现代世界观_BUFF"]["体质"] != 1.0:
-            体质 = int(
-                正态修正(100, 20, ExtraInfo["现代世界观_通常属性"]["体质"], ExtraInfo["现代世界观_BUFF"]["体质"]))
-        else:
-            体质 = ExtraInfo["现代世界观_通常属性"]["体质"]
-        """
         return [int(ExtraInfo["现代世界观_通常属性"]["颜值"] + ExtraInfo["现代世界观_BUFF"]["颜值"]),
                 int(ExtraInfo["现代世界观_通常属性"]["智力"] + ExtraInfo["现代世界观_BUFF"]["智力"]),
                 int(ExtraInfo["现代世界观_通常属性"]["体质"] + ExtraInfo["现代世界观_BUFF"]["体质"])]

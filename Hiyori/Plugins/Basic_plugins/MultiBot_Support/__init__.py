@@ -6,17 +6,20 @@
 @Ver : 1.0.0
 """
 from nonebot import on_regex, get_bot
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot, Event
 from nonebot.permission import SUPERUSER
+from nonebot.message import handle_event
 
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Message.At import GetAtQQs
+from Hiyori.Utils.API.QQ import GetQQStrangerName
 
 from .config import multiBotConfig
 from .hook import *
 
 HiyoriStart = on_regex(pattern=r"妃爱启动", permission=SUPERUSER | HIYORI_OWNER, priority=Priority.系统优先级)
+CheckStatus = on_regex(pattern=r"^#?状态$", permission=SUPERUSER, priority=Priority.系统优先级, block=False)
 
 
 @HiyoriStart.handle()
@@ -73,3 +76,12 @@ def getBot(GroupID: int | str) -> Bot | None:
                     return get_bot(self_id=botQQ)
             # 没找到就返回None
             return None
+
+
+@CheckStatus.handle()
+async def _(bot: Bot):
+    msg = "当前已连接Bot列表：\n"
+    for hiyori in multiBotConfig.activeBots:
+        name = await GetQQStrangerName(bot=bot, QQ=int(hiyori))
+        msg += f"{name}({hiyori})\n"
+    await CheckStatus.send(msg)

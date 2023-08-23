@@ -15,12 +15,11 @@ class Job(ABC):
     name = "JobName"
 
     @staticmethod
-    @abstractmethod
     def Enable(slave: Slave) -> bool:
         """
         判断是否胜任工作
         """
-        pass
+        return True
 
     @staticmethod
     @abstractmethod
@@ -33,10 +32,6 @@ class Job(ABC):
 
 class 黑煤窑(Job):
     name = "去黑煤窑挖煤"
-
-    @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
 
     @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
@@ -62,10 +57,6 @@ class 小传单(Job):
     name = "发小传单"
 
     @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
-
-    @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
         颜值 = SlaveUtils.获取现代世界观属性(slave)[0]
         if 颜值 <= 60:
@@ -84,10 +75,6 @@ class 小传单(Job):
 
 class 打灰(Job):
     name = "工地打灰"
-
-    @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
 
     @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
@@ -117,10 +104,6 @@ class 飞饼(Job):
     name = "摆摊卖鸡哥飞饼"
 
     @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
-
-    @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
         income = random.randint(10, 20)
         return f"【{slaveName}】在美食街出售鸡你太美飞饼，虽然把饼甩飞了，但是围观群众纷纷购买鸡哥飞饼。获得收入{income}妃爱币。", income
@@ -128,10 +111,6 @@ class 飞饼(Job):
 
 class B站审核(Job):
     name = "皮站审核"
-
-    @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
 
     @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
@@ -142,10 +121,6 @@ class B站审核(Job):
 
 class 代课(Job):
     name = "帮大学生代课"
-
-    @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
 
     @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
@@ -178,10 +153,6 @@ class 不要笑挑战(Job):
     name = "不要笑挑战"
 
     @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
-
-    @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
         income = random.randint(10, 20)
         return f"【{slaveName}】参加了网红主播的不要笑挑战。获得收入{income}妃爱币。", income
@@ -191,10 +162,6 @@ class 洗盘子(Job):
     name = "跑路洗盘子"
 
     @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
-
-    @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
         income = random.randint(10, 20)
         return f"【{slaveName}】偷渡到美国在中餐馆洗盘子。获得收入{income}妃爱币。", income
@@ -202,10 +169,6 @@ class 洗盘子(Job):
 
 class 闲鱼(Job):
     name = "当某鱼卖家"
-
-    @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
 
     @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
@@ -233,10 +196,6 @@ class 横店(Job):
     name = "当群演"
 
     @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
-
-    @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):
         属性 = SlaveUtils.获取现代世界观属性(slave)
         颜值 = 属性[0]
@@ -262,10 +221,6 @@ class 横店(Job):
 
 class 漫展(Job):
     name = "去漫展"
-
-    @staticmethod
-    def Enable(slave: Slave) -> bool:
-        return True
 
     @staticmethod
     def Execute(slave: Slave, slaveName: str) -> (str, int):

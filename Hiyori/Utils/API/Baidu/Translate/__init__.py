@@ -1,6 +1,6 @@
 import json
 import asyncio
-from .. import Baidu
+from .. import baidu
 import aiohttp
 
 
@@ -13,7 +13,6 @@ async def Translate(Sentence: str, to_Language: str = "zh", from_Language: str =
 
     常见语言代码：中文 zh 英语 en 日语 jp
     """
-    baidu = Baidu()
     status = await baidu.Api.Translate.Refresh_Access_Token()
     if status == 1:
         baidu.dumps()
