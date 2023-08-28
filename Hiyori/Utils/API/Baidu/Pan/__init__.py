@@ -258,7 +258,7 @@ async def listDir_Recurse(path: str = "/", order: str = "name", desc: int = 1, s
 
 async def downloadFile(localPath: str, panPath: str) -> int:
     """
-    将网盘指定目录文件下载至指定文件目录，成功返回1，失败返回0
+    将网盘指定目录文件下载至指定文件目录，成功返回文件大小，失败返回0
 
     :param localPath: 文件路径
     :param panPath: 网盘路径
@@ -280,7 +280,7 @@ async def downloadFile(localPath: str, panPath: str) -> int:
                     await file.write(chunk)
     # end = time.time_ns()
     # print((end - start) / (10 ** 9))
-    return 1
+    return os.path.getsize(localPath)
 
 
 if __name__ == '__main__':
