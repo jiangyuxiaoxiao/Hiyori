@@ -9,6 +9,7 @@ import json
 
 import aiohttp
 from datetime import datetime, timedelta
+from playwright.async_api import async_playwright
 
 from Hiyori.Utils.File import DirExist, JsonFileExist
 
@@ -88,21 +89,34 @@ class Baidu:
 
             async def openapi_Refresh_Access_Token(self) -> int:
                 """
-                异步获取access token，当成功获取后根据状态返回值：\n
+                异步更新access token，当成功获取后根据状态返回值：\n
                 -1 失败\n
                 0 成功，未更新\n
                 1 成功，已更新\n
+                当返回1说明配置文件需要在外部进行变更保存。
                 """
                 # 未配置key
-                if self.api_key == "" or self.secret_key == "" or self.refresh_token == "":
+                if self.api_key == "" or self.secret_key == "":
                     return -1
+                # 未配置refreshToken:
+                flag_get_refresh_token = False  # 是否新获得refresh_token
+                if self.refresh_token == "":
+                    stat = await self.openapi_Get_Refresh_Token()
+                    if stat == -1:
+                        return -1
+                    else:
+                        flag_get_refresh_token = True
                 # 检查是否过期
                 timeout = datetime.strptime(self.timeout_date, "%Y-%m-%d %H:%M:%S")
                 now = datetime.now()
                 if now < timeout:
                     # 未过期
                     if self.access_token != "":
-                        return 0
+                        # 已刷新refresh token，配置已更新
+                        if flag_get_refresh_token:
+                            return 1
+                        else:
+                            return 0
                 # 网络请求access key
                 url = f"https://openapi.baidu.com/oauth/2.0/token?" \
                       f"grant_type=refresh_token" \
@@ -125,6 +139,52 @@ class Baidu:
                                     return -1
                 return -1
 
+            async def openapi_Get_Refresh_Token(self) -> int:
+                """
+                异步获取RefreshToken，根据获取状态返回值：\n
+                -1 失败\n
+                1 成功，已更新\n
+                :return:
+                """
+                # 未配置key
+                if self.api_key == "" or self.secret_key == "":
+                    return -1
+                # 获取token
+                url = f"http://openapi.baidu.com/oauth/2.0/authorize?" \
+                      f"&response_type=code" \
+                      f"&client_id={self.api_key}" \
+                      f"&redirect_uri=oob" \
+                      f"&qrcode=1" \
+                      f"&scope=basic,netdisk"
+                now = datetime.now()
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch(headless=False)
+                    context = await browser.new_context()
+                    page = await context.new_page()
+                    await page.goto(url)
+                    await page.wait_for_selector("#Verifier", timeout=120000)
+                    code = await page.query_selector("#Verifier")
+                    code = await code.get_attribute("value")
+                    code = str(code)
+                url = f"https://openapi.baidu.com/oauth/2.0/token?" \
+                      f"grant_type=authorization_code&" \
+                      f"&code={code}" \
+                      f"&client_id={self.api_key}" \
+                      f"&client_secret={self.secret_key}" \
+                      f"&redirect_uri=oob"
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url) as response:
+                        if response.status == 200:
+                            responseJsonDict = await response.json()
+                            self.refresh_token = responseJsonDict["refresh_token"]
+                            if "access_token" in responseJsonDict.keys():
+                                self.access_token = responseJsonDict["access_token"]
+                                if "expires_in" in responseJsonDict.keys():
+                                    expires_in = responseJsonDict["expires_in"]
+                                    timeout = now + timedelta(seconds=expires_in)
+                                    self.timeout_date = timeout.strftime("%Y-%m-%d %H:%M:%S")
+                                    return 1
+                return -1
 
         def __init__(self, Translate=AccessToken(), Pan=AccessToken()):
             self.Translate = Translate

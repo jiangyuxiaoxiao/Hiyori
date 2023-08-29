@@ -17,12 +17,14 @@ from Hiyori.Utils.File import DirExist
 from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Message.Forward_Message import Nodes
 import Hiyori.Utils.API.Baidu.Pan as baiduPan
+from Hiyori.Utils.API.Baidu import baidu
 
 Dir = "/"
 
 myPan = on_regex(r"^pan\s+ls$", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
 cd = on_regex(r"^pan\s+cd\s+", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
 download = on_regex(r"^pan\s+dl\s+", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
+login = on_regex(r"^pan\s+login", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
 
 
 @myPan.handle()
@@ -129,3 +131,8 @@ async def _(bot: Bot, event: MessageEvent):
         return
     if os.path.exists(localPath):
         os.remove(path=localPath)
+
+
+@login.handle()
+async def _(event: MessageEvent):
+    await baidu.Api.Pan.openapi_Get_Refresh_Token()
