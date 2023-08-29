@@ -11,6 +11,9 @@ import aiohttp
 from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
 
+from nonebot.matcher import Matcher
+from nonebot.adapters.onebot.v11 import MessageSegment
+
 from Hiyori.Utils.File import DirExist, JsonFileExist
 
 # 模块初始化
@@ -87,7 +90,29 @@ class Baidu:
                                     return -1
                 return -1
 
-            async def openapi_Refresh_Access_Token(self) -> int:
+        class PanAccessToken:
+            def __init__(self, access_host: str = "http://openapi.baidu.com/oauth/2.0",
+                         app_key: str = "", secret_key: str = "", userInfo: dict = None):
+                if userInfo is None:
+                    userInfo = {}
+                self.access_host = access_host
+                self.app_key = app_key
+                self.secret_key = secret_key
+                self.userInfo = userInfo
+
+            def to_dict(self) -> dict[str, any]:
+                return {
+                    "access_host": self.access_host,
+                    "app_key": self.app_key,
+                    "secret_key": self.secret_key,
+                    "userInfo": self.userInfo
+                }
+
+            @classmethod
+            def from_dict(cls, data: dict[str, any]):
+                return cls(data["access_host"], data["app_key"], data["secret_key"], data["userInfo"])
+
+            async def openapi_Refresh_Access_Token(self, QQ: int, matcher: Matcher) -> int:
                 """
                 异步更新access token，当成功获取后根据状态返回值：\n
                 -1 失败\n
@@ -96,50 +121,51 @@ class Baidu:
                 当返回1说明配置文件需要在外部进行变更保存。
                 """
                 # 未配置key
-                if self.api_key == "" or self.secret_key == "":
+                if self.app_key == "" or self.secret_key == "":
                     return -1
                 # 未配置refreshToken:
                 flag_get_refresh_token = False  # 是否新获得refresh_token
-                if self.refresh_token == "":
-                    stat = await self.openapi_Get_Refresh_Token()
+                if self.userInfo[str(QQ)]["refresh_token"] == "":
+                    stat = await self.openapi_Get_Refresh_Token(QQ, matcher)
                     if stat == -1:
                         return -1
                     else:
                         flag_get_refresh_token = True
                 # 检查是否过期
-                timeout = datetime.strptime(self.timeout_date, "%Y-%m-%d %H:%M:%S")
+                timeout = datetime.strptime(self.userInfo[str(QQ)]["timeout_date"], "%Y-%m-%d %H:%M:%S")
                 now = datetime.now()
                 if now < timeout:
                     # 未过期
-                    if self.access_token != "":
+                    if self.userInfo[str(QQ)]["access_token"] != "":
                         # 已刷新refresh token，配置已更新
                         if flag_get_refresh_token:
                             return 1
                         else:
                             return 0
                 # 网络请求access key
+                refresh_token = self.userInfo[str(QQ)]["refresh_token"]
                 url = f"https://openapi.baidu.com/oauth/2.0/token?" \
                       f"grant_type=refresh_token" \
-                      f"&refresh_token={self.refresh_token}" \
-                      f"&client_id={self.api_key}" \
+                      f"&refresh_token={refresh_token}" \
+                      f"&client_id={self.app_key}" \
                       f"&client_secret={self.secret_key}"
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url) as response:
                         if response.status == 200:
                             responseJsonDict = await response.json()
-                            self.refresh_token = responseJsonDict["refresh_token"]
+                            self.userInfo[str(QQ)]["refresh_token"] = responseJsonDict["refresh_token"]
                             if "access_token" in responseJsonDict.keys():
-                                self.access_token = responseJsonDict["access_token"]
+                                self.userInfo[str(QQ)]["access_token"] = responseJsonDict["access_token"]
                                 if "expires_in" in responseJsonDict.keys():
                                     expires_in = responseJsonDict["expires_in"]
                                     timeout = now + timedelta(seconds=expires_in)
-                                    self.timeout_date = timeout.strftime("%Y-%m-%d %H:%M:%S")
+                                    self.userInfo[str(QQ)]["timeout_date"] = timeout.strftime("%Y-%m-%d %H:%M:%S")
                                     return 1
                                 else:
                                     return -1
                 return -1
 
-            async def openapi_Get_Refresh_Token(self) -> int:
+            async def openapi_Get_Refresh_Token(self, QQ: int, matcher: Matcher) -> int:
                 """
                 异步获取RefreshToken，根据获取状态返回值：\n
                 -1 失败\n
@@ -147,21 +173,30 @@ class Baidu:
                 :return:
                 """
                 # 未配置key
-                if self.api_key == "" or self.secret_key == "":
+                if self.app_key == "" or self.secret_key == "":
+                    return -1
+                # 未提供matcher
+                if matcher is None:
                     return -1
                 # 获取token
                 url = f"http://openapi.baidu.com/oauth/2.0/authorize?" \
                       f"&response_type=code" \
-                      f"&client_id={self.api_key}" \
+                      f"&client_id={self.app_key}" \
                       f"&redirect_uri=oob" \
                       f"&qrcode=1" \
                       f"&scope=basic,netdisk"
                 now = datetime.now()
                 async with async_playwright() as p:
-                    browser = await p.chromium.launch(headless=False)
+                    browser = await p.chromium.launch(headless=True)
                     context = await browser.new_context()
                     page = await context.new_page()
                     await page.goto(url)
+                    await page.wait_for_selector(".g-bd-wp.wordwrap.clearfix")
+                    screen = await page.query_selector(".g-bd-wp.wordwrap.clearfix")
+                    image = await screen.screenshot()
+                    msg = "操作前请先登录。请扫描百度网盘二维码登录。扫描后妃爱将获得网盘操作的授权，请谨慎操作。"
+                    msg += MessageSegment.at(QQ) + MessageSegment.image(image)
+                    await matcher.send(msg)
                     await page.wait_for_selector("#Verifier", timeout=120000)
                     code = await page.query_selector("#Verifier")
                     code = await code.get_attribute("value")
@@ -169,24 +204,28 @@ class Baidu:
                 url = f"https://openapi.baidu.com/oauth/2.0/token?" \
                       f"grant_type=authorization_code&" \
                       f"&code={code}" \
-                      f"&client_id={self.api_key}" \
+                      f"&client_id={self.app_key}" \
                       f"&client_secret={self.secret_key}" \
                       f"&redirect_uri=oob"
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url) as response:
                         if response.status == 200:
                             responseJsonDict = await response.json()
-                            self.refresh_token = responseJsonDict["refresh_token"]
+                            if str(QQ) not in self.userInfo.keys():
+                                self.userInfo[str(QQ)] = {}
+                            self.userInfo[str(QQ)]["refresh_token"] = responseJsonDict["refresh_token"]
                             if "access_token" in responseJsonDict.keys():
-                                self.access_token = responseJsonDict["access_token"]
+                                self.userInfo[str(QQ)]["access_token"] = responseJsonDict["access_token"]
                                 if "expires_in" in responseJsonDict.keys():
                                     expires_in = responseJsonDict["expires_in"]
                                     timeout = now + timedelta(seconds=expires_in)
-                                    self.timeout_date = timeout.strftime("%Y-%m-%d %H:%M:%S")
+                                    self.userInfo[str(QQ)]["timeout_date"] = timeout.strftime("%Y-%m-%d %H:%M:%S")
+                                    msg = MessageSegment.at(QQ) + "登录成功"
+                                    await matcher.send(msg)
                                     return 1
                 return -1
 
-        def __init__(self, Translate=AccessToken(), Pan=AccessToken()):
+        def __init__(self, Translate=AccessToken(), Pan=PanAccessToken()):
             self.Translate = Translate
             self.Pan = Pan
 
@@ -199,7 +238,7 @@ class Baidu:
         @classmethod
         def from_dict(cls, data: dict[str, any]):
             return cls(Baidu.Api.AccessToken.from_dict(data["Translate"]),
-                       Baidu.Api.AccessToken.from_dict(data["Pan"]))
+                       Baidu.Api.PanAccessToken.from_dict(data["Pan"]))
 
     def __init__(self, api=Api()):
         self.Api = api

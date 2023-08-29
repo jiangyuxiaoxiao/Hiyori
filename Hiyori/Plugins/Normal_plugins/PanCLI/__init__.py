@@ -10,27 +10,50 @@ import os
 import random
 
 from nonebot import on_regex
-from nonebot.adapters.onebot.v11 import MessageEvent, GroupMessageEvent, PrivateMessageEvent, Bot
+from nonebot.adapters.onebot.v11 import MessageEvent, GroupMessageEvent, PrivateMessageEvent, Bot, MessageSegment
+from nonebot.matcher import Matcher
+from nonebot.plugin import PluginMetadata
 
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.File import DirExist
-from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Message.Forward_Message import Nodes
 import Hiyori.Utils.API.Baidu.Pan as baiduPan
 from Hiyori.Utils.API.Baidu import baidu
 
-Dir = "/"
+__plugin_meta__ = PluginMetadata(
+    name="妃爱网盘",
+    description="通过妃爱操作百度网盘。",
+    usage="pan ls 【查询当前路径目录】\n"
+          "pan cd 路径 【切换到指定路径】\n"
+          "pan dl 文件路径 【下载指定文件到对应群聊/私聊】\n"
+          "pan login 【百度网盘登录】",
+    extra={
+        "CD_Weight": 2,
+        "example": "",
+        "Keep_On": False,
+        "Type": "Normal_Plugin",
+    },
+)
 
-myPan = on_regex(r"^pan\s+ls$", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
-cd = on_regex(r"^pan\s+cd\s+", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
-download = on_regex(r"^pan\s+dl\s+", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
-login = on_regex(r"^pan\s+login", permission=HIYORI_OWNER, priority=Priority.系统优先级, block=True)
+Dir: dict = {}
+
+myPan = on_regex(r"^pan\s+ls$", priority=Priority.系统优先级, block=True)
+cd = on_regex(r"^pan\s+cd\s+", priority=Priority.系统优先级, block=True)
+download = on_regex(r"^pan\s+dl\s+", priority=Priority.系统优先级, block=True)
+login = on_regex(r"^pan\s+login", priority=Priority.系统优先级, block=True)
 
 
 @myPan.handle()
-async def _(bot: Bot, event: MessageEvent):
+async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
     global Dir
-    infos = await baiduPan.listDir(path=Dir)
+    QQ = event.user_id
+    if QQ not in Dir.keys():
+        Dir[QQ] = "/"
+    if str(QQ) not in baidu.Api.Pan.userInfo.keys():
+        msg = MessageSegment.at(QQ) + "请先登录后再操作，指令为： pan login"
+        await myPan.send(msg)
+        return
+    infos = await baiduPan.listDir(path=Dir[QQ], QQ=QQ, matcher=matcher)
     msg = ""
     if infos is None:
         await myPan.send("目录获取失败")
@@ -48,16 +71,23 @@ async def _(bot: Bot, event: MessageEvent):
 
 
 @cd.handle()
-async def _(bot: Bot, event: MessageEvent):
+async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
     global Dir
+    QQ = event.user_id
+    if QQ not in Dir.keys():
+        Dir[QQ] = "/"
+    if str(QQ) not in baidu.Api.Pan.userInfo.keys():
+        msg = MessageSegment.at(QQ) + "请先登录后再操作，指令为： pan login"
+        await myPan.send(msg)
+        return
     goto = re.sub(r"^pan\s+cd\s+", string=str(event.message), repl="")
     if goto.startswith("/"):
         newDir = goto
-        infos = await baiduPan.listDir(path=newDir)
+        infos = await baiduPan.listDir(path=newDir, QQ=QQ, matcher=matcher)
         if infos is None:
             await cd.send("目录不存在")
         else:
-            Dir = newDir
+            Dir[QQ] = newDir
             msg = ""
 
             for info in infos:
@@ -65,7 +95,7 @@ async def _(bot: Bot, event: MessageEvent):
                     msg += info["server_filename"] + "/\n"
                 else:
                     msg += info["server_filename"] + "\n"
-            await cd.send(f"[pan]$    {Dir}>")
+            await cd.send(f"[pan {QQ}]$    {Dir[QQ]}>")
             # 在群聊中，过长会进行转发
             if len(infos) > 10 and isinstance(event, GroupMessageEvent):
                 msg = Nodes(qID=event.self_id, name="妃爱网盘", content=msg)
@@ -73,22 +103,22 @@ async def _(bot: Bot, event: MessageEvent):
             else:
                 await myPan.send(msg)
         return
-    newDir = os.path.normpath(Dir + goto)
+    newDir = os.path.normpath(Dir[QQ] + goto)
     newDir = newDir.replace("\\", "/")
     if not newDir.endswith("/"):
         newDir += "/"
-    infos = await baiduPan.listDir(path=newDir)
+    infos = await baiduPan.listDir(path=newDir, QQ=QQ, matcher=matcher)
     if infos is None:
         await cd.send("目录不存在")
     else:
-        Dir = newDir
+        Dir[QQ] = newDir
         msg = ""
         for info in infos:
             if info["isdir"] == 1:
                 msg += info["server_filename"] + "/\n"
             else:
                 msg += info["server_filename"] + "\n"
-        await cd.send(f"[pan]$    {Dir}>")
+        await cd.send(f"[pan {QQ}]$    {Dir[QQ]}>")
         if len(infos) > 10 and isinstance(event, GroupMessageEvent):
             msg = Nodes(qID=event.self_id, name="妃爱网盘", content=msg)
             await bot.call_api("send_group_forward_msg", **{"group_id": event.group_id, "messages": msg.msg()})
@@ -98,20 +128,27 @@ async def _(bot: Bot, event: MessageEvent):
 
 
 @download.handle()
-async def _(bot: Bot, event: MessageEvent):
+async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
     """在群聊中将上传至群文件，在私聊中将上传私聊文件"""
     global Dir
+    QQ = event.user_id
+    if QQ not in Dir.keys():
+        Dir[QQ] = "/"
+    if str(QQ) not in baidu.Api.Pan.userInfo.keys():
+        msg = MessageSegment.at(QQ) + "请先登录后再操作，指令为： pan login"
+        await myPan.send(msg)
+        return
     file = re.sub(r"^pan\s+dl\s+", string=str(event.message), repl="")
     if file.startswith("/"):
         file = file
     else:
-        file = os.path.normpath(Dir + file)
+        file = os.path.normpath(Dir[QQ] + file)
         file = file.replace("\\", "/")
     fileName = os.path.basename(file)
     DirExist("Data/BaiduPan/Cache")
     localPath = os.path.abspath(os.path.join("Data/BaiduPan/Cache", str(random.randint(1, 10 ** 10)) + ".hiyoriCache"))
     try:
-        await baiduPan.downloadFile(localPath=localPath, panPath=file)
+        await baiduPan.downloadFile(localPath=localPath, panPath=file, QQ=QQ, matcher=matcher)
     except Exception:
         await download.send("文件下载失败")
         if os.path.exists(localPath):
@@ -134,5 +171,8 @@ async def _(bot: Bot, event: MessageEvent):
 
 
 @login.handle()
-async def _(event: MessageEvent):
-    await baidu.Api.Pan.openapi_Get_Refresh_Token()
+async def _(matcher: Matcher, event: MessageEvent):
+    QQ = event.user_id
+    status = await baidu.Api.Pan.openapi_Get_Refresh_Token(QQ=QQ, matcher=matcher)
+    if status == 1:
+        baidu.dumps()

@@ -6,26 +6,27 @@
 @Ver : 1.0.0
 """
 from Hiyori.Utils.API.Baidu import baidu
-import asyncio
+from nonebot.matcher import Matcher
 import aiohttp
 import urllib.parse
 import os
 import aiofiles
-import time
 
 
-async def getToken() -> int | None:
-    status = await baidu.Api.Pan.openapi_Refresh_Access_Token()
+async def getToken(QQ: int, matcher: Matcher) -> int | None:
+    status = await baidu.Api.Pan.openapi_Refresh_Access_Token(QQ, matcher)
     if status == 1:
         baidu.dumps()
     elif status == -1:
         return None
-    return baidu.Api.Pan.access_token
+    return baidu.Api.Pan.userInfo[str(QQ)]["access_token"]
 
 
-async def userInfo() -> dict[str, any] | None:
+async def userInfo(QQ: int, matcher: Matcher = None) -> dict[str, any] | None:
     """
     获取当前用户信息，若不成功返回None
+    :param QQ: 用户QQ号
+    :param matcher: 事件matcher
 
     返回说明\n
     baidu_name	string	百度账号\n
@@ -34,7 +35,7 @@ async def userInfo() -> dict[str, any] | None:
     vip_type	int	会员类型，0普通用户、1普通会员、2超级会员\n
     uk	int	用户ID
     """
-    token = await getToken()
+    token = await getToken(QQ, matcher)
     if token is None:
         return None
     token = baidu.Api.Pan.access_token
@@ -47,9 +48,12 @@ async def userInfo() -> dict[str, any] | None:
             return result
 
 
-async def diskInfo() -> dict[str, any] | None:
+async def diskInfo(QQ: int, matcher: Matcher = None) -> dict[str, any] | None:
     """
     获取用户当前网盘信息，若不成功返回None
+
+    :param QQ: 用户QQ号
+    :param matcher: 事件matcher
 
     返回说明\n
     total	int	总空间大小，单位B\n
@@ -57,7 +61,7 @@ async def diskInfo() -> dict[str, any] | None:
     used	int	已使用大小，单位B\n
     free	int	免费容量，单位B
     """
-    token = await getToken()
+    token = await getToken(QQ, matcher)
     if token is None:
         return None
     url = f"https://pan.baidu.com/api/quota?access_token={token}&checkfree=1&checkexpire=1"
@@ -69,10 +73,13 @@ async def diskInfo() -> dict[str, any] | None:
             return result
 
 
-async def fileInfoByFids(fids: int | list[int], dlink: int = 1, thumb: int = 1, extra: int = 1, needmedia: int = 1) -> list[dict[str, any]] | None:
+async def fileInfoByFids(QQ: int, fids: int | list[int] = None, dlink: int = 1, thumb: int = 1, extra: int = 1, needmedia: int = 1, matcher: Matcher = None) \
+        -> list[dict[str, any]] | None:
     """
-    根据文件的id查询文件信息，上限100个。
+    根据文件的id查询文件信息，上限100个，若不成功返回None
 
+    :param QQ: 用户QQ号
+    :param matcher: 事件matcher
     :param fids: fid，int类型
     :param dlink: 是否需要下载地址, 0为否，1为是
     :param thumb: 是否需要缩略图地址，0为否，1为是
@@ -95,7 +102,7 @@ async def fileInfoByFids(fids: int | list[int], dlink: int = 1, thumb: int = 1, 
     list[0]["width”]	int	图片宽度 \n
     list[0]["date_taken”]	int	图片拍摄时间
     """
-    token = await getToken()
+    token = await getToken(QQ, matcher)
     url = "https://pan.baidu.com/rest/2.0/xpan/multimedia"
     if isinstance(fids, int):
         fids = [fids]
@@ -111,9 +118,12 @@ async def fileInfoByFids(fids: int | list[int], dlink: int = 1, thumb: int = 1, 
                 return None
 
 
-async def fileInfo(path: str, dlink: int = 1, thumb: int = 1, extra: int = 1, needmedia: int = 1) -> dict[str, any] | None:
+async def fileInfo(QQ: int, path: str, dlink: int = 1, thumb: int = 1, extra: int = 1, needmedia: int = 1, matcher: Matcher = None) \
+        -> dict[str, any] | None:
     """
     文件信息查询，若未查询到结果返回None，否则返回对应信息
+    :param QQ: 用户QQ号
+    :param matcher: 事件matcher
     :param path: 文件路径
     :param dlink: 是否需要下载地址, 0为否，1为是
     :param thumb: 是否需要缩略图地址，0为否，1为是
@@ -137,12 +147,12 @@ async def fileInfo(path: str, dlink: int = 1, thumb: int = 1, extra: int = 1, ne
     """
     dirPath = os.path.dirname(path)  # 路径名
     fileName = os.path.basename(path)  # 文件名
-    infos = await listDir(path=dirPath)
+    infos = await listDir(QQ=QQ, path=dirPath, matcher=matcher)
     if infos is not None:
         for info in infos:
             if info["server_filename"] == fileName:
                 fid = info["fs_id"]
-                info = await fileInfoByFids(fids=fid, dlink=dlink, thumb=thumb, extra=extra, needmedia=needmedia)
+                info = await fileInfoByFids(QQ=QQ, matcher=matcher, fids=fid, dlink=dlink, thumb=thumb, extra=extra, needmedia=needmedia)
                 if info is None:
                     return None
                 else:
@@ -151,11 +161,13 @@ async def fileInfo(path: str, dlink: int = 1, thumb: int = 1, extra: int = 1, ne
     return None
 
 
-async def listDir(path: str = "/", order: str = "name", desc: int = 1, start: int = 0, limit: int = 100,
-                  web: int = 1, folder: int = 0, showempty: int = 1) -> list[dict[str, any]] | None:
+async def listDir(QQ: int, path: str = "/", order: str = "name", desc: int = 1, start: int = 0, limit: int = 100,
+                  web: int = 1, folder: int = 0, showempty: int = 1, matcher: Matcher = None) -> list[dict[str, any]] | None:
     """
-    获取文件列表
+    获取文件列表，若不成功返回None
 
+    :param QQ: 用户QQ号
+    :param matcher: 事件matcher
     :param path: 需要list的目录，以/开头的绝对路径, 默认为/
     :param order: 排序字段：默认为name；time表示先按文件类型排序，后按修改时间排序；name表示先按文件类型排序，后按文件名称排序；(注意，此处排序是按字符串排序的，如果用户有剧集排序需求，需要自行开发)size表示先按文件类型排序，后按文件大小排序。
     :param desc: 默认为升序，设置为1实现降序 （注：排序的对象是当前目录下所有文件，不是当前分页下的文件）
@@ -180,24 +192,24 @@ async def listDir(path: str = "/", order: str = "name", desc: int = 1, start: in
     dir_empty	int	该目录是否存在子目录，只有请求参数web=1且该条目为目录时，该字段才存在， 0为存在， 1为不存在 \n
     thumbs	array	只有请求参数web=1且该条目分类为图片时，该字段才存在，包含三个尺寸的缩略图URL \n
     """
-    token = await getToken()
+    token = await getToken(QQ, matcher)
     if token is None:
         return None
-    # 处理地址
-    fileDir = urllib.parse.quote(path)
-    url = f"https://pan.baidu.com/rest/2.0/xpan/file?method=list" \
-          f"&access_token={token}" \
-          f"&dir={fileDir}" \
-          f"&order={order}" \
-          f"&desc={desc}" \
-          f"&start={start}" \
-          f"&limit={limit}" \
-          f"&web={web}" \
-          f"&folder={folder}" \
-          f"&showempty={showempty}"
+    params = {
+        "access_token": token,
+        "dir": path,
+        "order": order,
+        "desc": desc,
+        "start": start,
+        "limit": limit,
+        "web": web,
+        "folder": folder,
+        "showempty": showempty
+    }
+    url = f"https://pan.baidu.com/rest/2.0/xpan/file?method=list"
     # 发送请求
     async with aiohttp.ClientSession() as session:
-        async with session.get(url=url) as response:
+        async with session.get(url=url, params=params) as response:
             result = await response.json()
             # print(result)
             if result["errno"] == 0:
@@ -206,11 +218,13 @@ async def listDir(path: str = "/", order: str = "name", desc: int = 1, start: in
                 return None
 
 
-async def listDir_Recurse(path: str = "/", order: str = "name", desc: int = 1, start: int = 0, limit: int = 100,
-                          ctime: int = None, mtime: int = None, web: int = 1) -> dict[str, any]:
+async def listDir_Recurse(QQ: int, path: str = "/", order: str = "name", desc: int = 1, start: int = 0, limit: int = 100,
+                          ctime: int = None, mtime: int = None, web: int = 1, matcher: Matcher = None) -> dict[str, any] | None:
     """
-        递归获取文件列表，注意返回类型与listDir不同
+        递归获取文件列表，注意返回类型与listDir不同，若不成功返回None
 
+        :param QQ: 用户QQ号
+        :param matcher: 事件matcher
         :param path: 需要list的目录，以/开头的绝对路径, 默认为/
         :param order: 排序字段：默认为name；time表示先按文件类型排序，后按修改时间排序；name表示先按文件类型排序，后按文件名称排序；(注意，此处排序是按字符串排序的，如果用户有剧集排序需求，需要自行开发)size表示先按文件类型排序，后按文件大小排序。
         :param desc: 默认为升序，设置为1实现降序 （注：排序的对象是当前目录下所有文件，不是当前分页下的文件）
@@ -236,14 +250,13 @@ async def listDir_Recurse(path: str = "/", order: str = "name", desc: int = 1, s
         list[0]["thumbs"]   string	缩略图地址\n
         """
 
-    token = await getToken()
+    token = await getToken(QQ, matcher)
     if token is None:
         return None
     # 处理地址
-    fileDir = urllib.parse.quote(path)
     url = f"https://pan.baidu.com/rest/2.0/xpan/multimedia"
     params = {"method": "listall", "access_token": token, "path": path,
-              "recursion": 1, "order": order, "desc": desc, "start": start, "limit": limit}
+              "recursion": 1, "order": order, "desc": desc, "start": start, "limit": limit, "web": web}
     if ctime is not None:
         params["ctime"] = ctime
     if mtime is not None:
@@ -256,20 +269,23 @@ async def listDir_Recurse(path: str = "/", order: str = "name", desc: int = 1, s
             return result
 
 
-async def downloadFile(localPath: str, panPath: str) -> int:
+async def downloadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher = None) -> int:
     """
     将网盘指定目录文件下载至指定文件目录，成功返回文件大小，失败返回0
 
+    :param QQ: 用户QQ号
+    :param matcher: 事件matcher
     :param localPath: 文件路径
     :param panPath: 网盘路径
-    :return:
+
+    :return: 下载文件大小，失败返回0
     """
     # start = time.time_ns()
-    info = await fileInfo(path=panPath)
+    info = await fileInfo(QQ=QQ, matcher=matcher, path=panPath)
     if info is None:
         return 0
     dLink = info["dlink"]
-    token = await getToken()
+    token = await getToken(QQ, matcher)
     params = {"access_token": token}
     headers = {"User-Agent": "pan.baidu.com"}
     async with aiohttp.ClientSession() as session:
@@ -283,13 +299,37 @@ async def downloadFile(localPath: str, panPath: str) -> int:
     return os.path.getsize(localPath)
 
 
+async def deleteFile(QQ: int, pathList: str | list[str], matcher: Matcher = None) -> int:
+    """
+    操作网盘指定路径文件。根据操作结果返回值。
+
+    :param QQ: 用户QQ号
+    :param matcher: 事件matcher
+    :param pathList: 文件路径列表
+    :return: -1：获取token失败、-9：文件不存在、111：有其他异步任务在执行、-7：文件名非法、0：操作成功
+    """
+    token = await getToken(QQ, matcher)
+    if token is None:
+        return -1
+    if isinstance(pathList, str):
+        pathList = str([pathList])
+    else:
+        pathList = str(pathList)
+    url = f"https://pan.baidu.com/rest/2.0/xpan/file"
+    params = {"method": "filemanager", "access_token": token, "opera": "delete", "async": 0, "filelist": pathList}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url=url, params=params) as response:
+            result = await response.json()
+            # print(result)
+            return result["errno"]
+
+
 if __name__ == '__main__':
     # asyncio.run(getUserInfo())
     # asyncio.run(getDiskInfo())
     # asyncio.run(listDir(path="/Gal/ATRI/ATRI-my  dear moments.docx"))
     # asyncio.run(listDir_Recurse(path="/"))
     # asyncio.run(fileInfo(path="/Gal/ATRI/ATRI-my  dear moments.docx"))
-
-    asyncio.run(
-        downloadFile(localPath="C:\\Users\\65416\\Desktop\\网盘测试\\danei2.mp4", panPath="/我的资源/达内java2022年/1 FUNDAMENTAL01/06： 数组（下） 、 方法pm.mp4"))
+    # asyncio.run(
+    # downloadFile(localPath="C:\\Users\\65416\\Desktop\\网盘测试\\danei2.mp4", panPath="/我的资源/达内java2022年/1 FUNDAMENTAL01/06： 数组（下） 、 方法pm.mp4"))
     print(1)
