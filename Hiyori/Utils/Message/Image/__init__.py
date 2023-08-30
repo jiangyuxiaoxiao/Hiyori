@@ -70,7 +70,7 @@ def get_message_img(data: Union[str, Message]) -> List[str]:
     return img_list
 
 
-def ImageMessage(Path: str = None, b64: Optional[str] = None, ) -> MessageSegment:
+def ImageMessage(Path: str = None, b64: Optional[str] = None) -> MessageSegment:
     """
     将图片的路径以及图片base64编码转换为OneBot v11标准的MessageSegment
 

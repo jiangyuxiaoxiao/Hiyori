@@ -18,7 +18,7 @@ from nonebot.plugin import PluginMetadata
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Database import DB_slave, DB_User
 from Hiyori.Utils.Message.Forward_Message import Nodes
-from Hiyori.Utils.API.QQ import GetQQGrouperName
+from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import html_to_pic, md_to_pic
 from Hiyori.Utils.Matcher import logPluginExecuteTime
 
@@ -144,7 +144,13 @@ async def _(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
             # 注意，此处会记录对象，并且不再打印第二次
             if Couple != 0:
                 CoupleMap[Couple] = True
-                CoupleName = await GetQQGrouperName(bot=bot, QQ=Couple, Group=event.group_id)
+                try:
+                    CoupleName = await GetQQGrouperName(bot=bot, QQ=Couple, Group=event.group_id)
+                except Exception:
+                    try:
+                        CoupleName = await GetQQStrangerName(bot=bot, QQ=Couple)
+                    except Exception:
+                        CoupleName = ""
                 CoupleImageUrl = f"http://q1.qlogo.cn/g?b=qq&nk={Couple}&s=100"
                 CoupleName = removeUrl(CoupleName)
                 CoupleSlave = DB_slave.getUser(QQ=Couple, GroupID=event.group_id)
@@ -487,7 +493,13 @@ async def _(bot: Bot, event: GroupMessageEvent):
             # 当存在结婚对象时的打印情况
             if Couple != 0:
                 CoupleMap[Couple] = True
-                CoupleName = await GetQQGrouperName(bot=bot, QQ=Couple, Group=event.group_id)
+                try:
+                    CoupleName = await GetQQGrouperName(bot=bot, QQ=Couple, Group=event.group_id)
+                except Exception:
+                    try:
+                        CoupleName = await GetQQStrangerName(bot=bot, QQ=Couple)
+                    except Exception:
+                        CoupleName = ""
                 CoupleImageUrl = f"http://q1.qlogo.cn/g?b=qq&nk={Couple}&s=100"
                 CoupleName = removeUrl(CoupleName)
                 CoupleSlave = DB_slave.getUser(QQ=Couple, GroupID=event.group_id)

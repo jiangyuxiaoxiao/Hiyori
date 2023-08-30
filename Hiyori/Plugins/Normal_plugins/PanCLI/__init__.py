@@ -16,7 +16,6 @@ from nonebot.plugin import PluginMetadata
 
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.File import DirExist
-from Hiyori.Utils.Message.Forward_Message import Nodes
 import Hiyori.Utils.API.Baidu.Pan as baiduPan
 from Hiyori.Utils.API.Baidu import baidu
 
@@ -67,12 +66,7 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
     if infos is None:
         await myPan.send("目录获取失败")
     else:
-        msg = printFileInfo(infos)
-    if len(infos) > 10 and isinstance(event, GroupMessageEvent):
-        msg = Nodes(qID=event.self_id, name="妃爱网盘", content=msg)
-        await bot.call_api("send_group_forward_msg", **{"group_id": event.group_id, "messages": msg.msg()})
-    else:
-        await myPan.send(msg)
+        await myPan.send(printFileInfo(infos=infos, msgBefore=f"[pan {QQ}]$    {Dir[QQ]}>\n"))
 
 
 @cd.handle()
@@ -111,14 +105,7 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
         if not newDir.endswith("/"):
             newDir += "/"
         Dir[QQ] = newDir
-        msg = printFileInfo(infos)
-        await cd.send(f"[pan {QQ}]$    {Dir[QQ]}>")
-        # 在群聊中，过长会进行转发
-        if len(infos) > 10 and isinstance(event, GroupMessageEvent):
-            msg = Nodes(qID=event.self_id, name="妃爱网盘", content=msg)
-            await bot.call_api("send_group_forward_msg", **{"group_id": event.group_id, "messages": msg.msg()})
-        else:
-            await myPan.send(msg)
+        await cd.send(printFileInfo(infos=infos, msgBefore=f"[pan {QQ}]$    {Dir[QQ]}>\n"))
         return
     else:
         # newDir = os.path.join(Dir[QQ], goto)
@@ -151,13 +138,7 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
         if not newDir.endswith("/"):
             newDir += "/"
         Dir[QQ] = newDir
-        msg = printFileInfo(infos)
-        await cd.send(f"[pan {QQ}]$    {Dir[QQ]}>")
-        if len(infos) > 10 and isinstance(event, GroupMessageEvent):
-            msg = Nodes(qID=event.self_id, name="妃爱网盘", content=msg)
-            await bot.call_api("send_group_forward_msg", **{"group_id": event.group_id, "messages": msg.msg()})
-        else:
-            await myPan.send(msg)
+        await cd.send(printFileInfo(infos=infos, msgBefore=f"[pan {QQ}]$    {Dir[QQ]}>\n"))
         return
 
 

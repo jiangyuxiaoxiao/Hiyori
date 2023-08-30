@@ -8,10 +8,13 @@
 
 from nonebot import get_driver
 from nonebot import on_regex
-from nonebot.adapters.onebot.v11 import MessageEvent, Bot, GroupMessageEvent
+from nonebot.params import Received
+from nonebot.adapters.onebot.v11 import MessageEvent, Bot, GroupMessageEvent, MessageSegment
+
 from Hiyori.Utils.Priority import Priority
-from Hiyori.Utils.API.QQ import GetQQStrangerName, GetQQGrouperName
-import re
+from Hiyori.Utils.API.QQ import GetQQStrangerName, GetQQGrouperName, GetGroupName
+from Hiyori.Utils.Message.Forward_Message import Nodes
+
 from nonebot.plugin import PluginMetadata
 
 __plugin_meta__ = PluginMetadata(
@@ -32,23 +35,23 @@ WhereIsMom = on_regex(r"^#?对话开发者", priority=Priority.普通优先级, 
 
 @WhereIsMom.handle()
 async def _(bot: Bot, event: MessageEvent):
-    await WhereIsMom.send("请告诉妃爱你要说的话哦")
+    await WhereIsMom.send("请告诉妃爱你要说的话哦。")
 
 
-@WhereIsMom.got("message")
-async def _(bot: Bot, event: MessageEvent):
+@WhereIsMom.receive("")
+async def _(bot: Bot, event: MessageEvent = Received("")):
+    forwardMessage = Nodes(msgID=event.message_id)  # 要转发的消息
     superusers = get_driver().config.superusers
     if isinstance(event, GroupMessageEvent):
         Info = await GetQQGrouperName(bot=bot, QQ=event.user_id, Group=event.group_id)
-        group_info = await bot.get_group_info(group_id=event.group_id)
-        group_name = group_info["group_name"]
+        group_name = await GetGroupName(bot=bot, Group=event.group_id)
         message = f"来自群{group_name}({event.group_id})\n" \
-                  f"用户{Info}({event.user_id})的消息：\n\n" \
-                  f"{event.message}"
+                  f"用户{Info}({event.user_id})的消息："
     else:
         Info = await GetQQStrangerName(bot=bot, QQ=event.user_id)
-        message = f"来自用户{Info}({event.user_id})的消息：\n\n" \
-                  f"{event.message}"
+        message = f"来自用户{Info}({event.user_id})的消息："
+        message = MessageSegment.text(message) + event.message
     for superuser in superusers:
         await bot.send_private_msg(user_id=int(superuser), message=message)
+        await forwardMessage.send_private_forward_msg(bot=bot, QQ=int(superuser))
     await WhereIsMom.send("已将消息转述给开发者~")

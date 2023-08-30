@@ -34,3 +34,5 @@ def _HIYORI_ADMIN(bot: Bot, event: Event) -> bool:
 
 HIYORI_OWNER = Permission(_HIYORI_OWNER)
 HIYORI_ADMIN = Permission(_HIYORI_ADMIN)
+
+

@@ -13,7 +13,6 @@ from nonebot.exception import RejectedException
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Message.Forward_Message import Nodes
 
-
 __plugin_meta__ = PluginMetadata(
     name="特朗普被狗日了",  # 用于在菜单显示 用于插件开关
     description="QQ聊天记录生成",  # 用于在菜单中描述
@@ -29,15 +28,15 @@ __plugin_meta__ = PluginMetadata(
 )
 
 FakeMessage = on_regex(r"(^#特朗普被狗日了$)|(^#伪造聊天记录$)", priority=Priority.普通优先级, block=True)
-UserInfo: dict[int, Nodes] = dict()
+ForwardMessages: dict[int, Nodes] = dict()
 UserCount: dict[int, int] = dict()
 
 
 @FakeMessage.handle()
 async def _(event: GroupMessageEvent):
-    global UserInfo, UserCount
+    global ForwardMessages, UserCount
     QQ = event.user_id
-    UserInfo[QQ] = Nodes()
+    ForwardMessages[QQ] = Nodes()
     UserCount[QQ] = 0
     await FakeMessage.send("请用@用户+消息或者QQ号+空格+消息的方式设置聊天记录发送者及发送内容\n"
                            "若未输入用户则默认为自己\n"
@@ -52,14 +51,15 @@ async def _(event: GroupMessageEvent):
 
 @FakeMessage.receive("")
 async def _(bot: Bot, event: GroupMessageEvent = Received("")):
-    global UserInfo, UserCount
+    global ForwardMessages, UserCount
     GroupID = event.group_id
-    message = str(event.raw_message)
+    message = event.raw_message
     # 捕获RejectException外的异常，通知用户流程终止。
     try:
         if message == "END" or message == "end":
             QQ = event.user_id
-            await bot.call_api("send_group_forward_msg", **{"group_id": GroupID, "messages": UserInfo[QQ].msg()})
+            await ForwardMessages[QQ].send_group_forward_msg(bot=bot, GroupID=GroupID)
+            # await bot.call_api("send_group_forward_msg", **{"group_id": GroupID, "messages": UserInfo[QQ].msg()})
         else:
             # QQ号获取
             messages = message.split(" ", 1)
@@ -99,13 +99,13 @@ async def _(bot: Bot, event: GroupMessageEvent = Received("")):
                     Name = Info["nickname"]
                 else:
                     Name = ""
-            if event.user_id not in UserInfo.keys():
-                UserInfo[event.user_id] = Nodes()
-            UserInfo[event.user_id] = UserInfo[event.user_id] + Nodes(qID=QQ, name=Name, content=message)
+            if event.user_id not in ForwardMessages.keys():
+                ForwardMessages[event.user_id] = Nodes()
+            ForwardMessages[event.user_id] = ForwardMessages[event.user_id] + Nodes(qID=QQ, name=Name, content=message)
             UserCount[event.user_id] = UserCount[event.user_id] + 1
             if UserCount[event.user_id] >= 99:
                 GroupID = event.group_id
-                await bot.call_api("send_group_forward_msg", **{"group_id": GroupID, "messages": UserInfo[QQ].msg()})
+                await bot.call_api("send_group_forward_msg", **{"group_id": GroupID, "messages": ForwardMessages[QQ].msg()})
             else:
                 await FakeMessage.reject()
     except Exception as e:
@@ -113,4 +113,3 @@ async def _(bot: Bot, event: GroupMessageEvent = Received("")):
             raise RejectedException
         else:
             await FakeMessage.send("API调用异常，对话流程已终结")
-

@@ -6,16 +6,18 @@
 @Ver : 1.0.0
 """
 import os
+from io import BytesIO
 
-import strenum
 from nonebot.matcher import Matcher
+from nonebot.adapters.onebot.v11 import MessageSegment
 
+from Hiyori.Utils.Message.Image.pil_utils import text2image
 from Hiyori.Utils.API.Baidu import baidu
 import Hiyori.Utils.API.Baidu.Pan as baiduPan
 
 
-def printFileInfo(infos: list[dict]) -> str:
-    msg = ""
+def printFileInfo(infos: list[dict], msgBefore: str = "", msgAfter: str = "") -> MessageSegment:
+    msg = msgBefore
     for info in infos:
         # 容量信息
         size = info["size"]
@@ -34,8 +36,13 @@ def printFileInfo(infos: list[dict]) -> str:
         else:
             msg += info["server_filename"] + "  " + size + "\n"
     if msg == "":
-        msg = "【当前文件夹为空】"
-    return msg
+        return MessageSegment.text("当前文件夹为空")
+    else:
+        msg = msg + msgAfter
+        image = text2image(text=msg)
+        msg = BytesIO()
+        image.save(msg, format="png")
+        return MessageSegment.image(msg)
 
 
 async def 文件模糊匹配(QQ: int, path: str, matcher: Matcher) -> str | None:

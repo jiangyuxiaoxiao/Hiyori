@@ -5,6 +5,7 @@
 @Desc: 多条消息转发结点
 @Ver : 1.0.0
 """
+from nonebot.adapters.onebot.v11 import Bot
 
 
 class Nodes:
@@ -54,3 +55,13 @@ class Nodes:
     def clear(self):
         self.nodes = []
         return
+
+    async def send_private_forward_msg(self, bot: Bot, QQ: int):
+        """ 发送私聊转发消息"""
+
+        await bot.call_api("send_private_forward_msg", user_id=QQ, messages=self.nodes)
+
+    async def send_group_forward_msg(self, bot: Bot, GroupID: int):
+        """ 发送群聊转发消息"""
+
+        await bot.call_api("send_group_forward_msg", group_id=GroupID, messages=self.nodes)
