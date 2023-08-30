@@ -118,8 +118,8 @@ async def fileInfoByFids(QQ: int, fids: int | list[int] = None, dlink: int = 1, 
                 return None
 
 
-async def fileInfo(QQ: int, path: str, dlink: int = 1, thumb: int = 1, extra: int = 1, needmedia: int = 1, matcher: Matcher = None) \
-        -> dict[str, any] | None:
+async def fileInfo(QQ: int, path: str, dlink: int = 1, thumb: int = 1, extra: int = 1, needmedia: int = 1, matcher: Matcher = None,
+                   fuzzy_matching: bool = False, ignoreFolder:bool = False) -> dict[str, any] | None:
     """
     文件信息查询，若未查询到结果返回None，否则返回对应信息
     :param QQ: 用户QQ号
@@ -129,6 +129,8 @@ async def fileInfo(QQ: int, path: str, dlink: int = 1, thumb: int = 1, extra: in
     :param thumb: 是否需要缩略图地址，0为否，1为是
     :param extra: 图片是否需要拍摄时间，原图分辨率等其他信息，0为否，1为是
     :param needmedia: 视频是否需要展示时长信息，单位为秒，0为否，1为是
+    :param fuzzy_matching: 是否进行模糊匹配，为True则进行模糊匹配
+    :param ignoreFolder: 是否无视文件夹，为True则不匹配文件夹
 
     返回说明\n
     list	json array	文件信息列表 \n
@@ -150,14 +152,16 @@ async def fileInfo(QQ: int, path: str, dlink: int = 1, thumb: int = 1, extra: in
     infos = await listDir(QQ=QQ, path=dirPath, matcher=matcher)
     if infos is not None:
         for info in infos:
-            if info["server_filename"] == fileName:
+            # 若进行模糊匹配，则只需文件开头相同
+            if (info["server_filename"].startswith(fileName) and fuzzy_matching) or info["server_filename"] == fileName:
+                if ignoreFolder and info["isdir"] == 1:
+                    continue
                 fid = info["fs_id"]
                 info = await fileInfoByFids(QQ=QQ, matcher=matcher, fids=fid, dlink=dlink, thumb=thumb, extra=extra, needmedia=needmedia)
                 if info is None:
                     return None
                 else:
                     return info[0]
-
     return None
 
 
@@ -269,22 +273,24 @@ async def listDir_Recurse(QQ: int, path: str = "/", order: str = "name", desc: i
             return result
 
 
-async def downloadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher = None) -> int:
+async def downloadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher = None, fuzzy_matching: bool = False) -> (int, str):
     """
-    将网盘指定目录文件下载至指定文件目录，成功返回文件大小，失败返回0
+    将网盘指定目录文件下载至指定文件目录，成功返回文件大小与文件名，失败抛出异常
 
     :param QQ: 用户QQ号
     :param matcher: 事件matcher
     :param localPath: 文件路径
     :param panPath: 网盘路径
+    :param fuzzy_matching: 是否进行模糊匹配，若为true则进行模糊匹配
 
-    :return: 下载文件大小，失败返回0
+    :return: 下载文件大小，单位为字节
     """
     # start = time.time_ns()
-    info = await fileInfo(QQ=QQ, matcher=matcher, path=panPath)
+    info = await fileInfo(QQ=QQ, matcher=matcher, path=panPath, fuzzy_matching=fuzzy_matching, ignoreFolder=True)
     if info is None:
-        return 0
-    dLink = info["dlink"]
+        raise Exception
+    else:
+        dLink = info["dlink"]
     token = await getToken(QQ, matcher)
     params = {"access_token": token}
     headers = {"User-Agent": "pan.baidu.com"}
@@ -296,7 +302,7 @@ async def downloadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher =
                     await file.write(chunk)
     # end = time.time_ns()
     # print((end - start) / (10 ** 9))
-    return os.path.getsize(localPath)
+    return os.path.getsize(localPath), info["filename"]
 
 
 async def deleteFile(QQ: int, pathList: str | list[str], matcher: Matcher = None) -> int:

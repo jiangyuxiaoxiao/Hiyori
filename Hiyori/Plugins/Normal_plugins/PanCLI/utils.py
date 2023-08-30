@@ -17,20 +17,12 @@ import Hiyori.Utils.API.Baidu.Pan as baiduPan
 
 
 def printFileInfo(infos: list[dict], msgBefore: str = "", msgAfter: str = "") -> MessageSegment:
+    """打印文件信息，并转换为图片"""
     msg = msgBefore
     for info in infos:
         # 容量信息
         size = info["size"]
-        if size < 1024:
-            size = str(size) + "B"
-        elif size < 1024 ** 2:
-            size = str(round(size / 1024, 3)) + "KB"
-        elif size < 1024 ** 3:
-            size = str(round(size / (1024 ** 2), 3)) + "MB"
-        elif size < 1024 ** 4:
-            size = str(round(size / (1024 ** 3), 3)) + "GB"
-        else:
-            size = str(round(size / (1024 ** 4), 3)) + "GB"
+        size = printSizeInfo(size)
         if info["isdir"] == 1:
             msg += info["server_filename"] + "/ " + "\n"
         else:
@@ -43,6 +35,25 @@ def printFileInfo(infos: list[dict], msgBefore: str = "", msgAfter: str = "") ->
         msg = BytesIO()
         image.save(msg, format="png")
         return MessageSegment.image(msg)
+
+
+def printSizeInfo(size: int) -> str:
+    """
+    打印文件大小信息，根据具体的值选择合适的单位。
+
+    :param size 文件大小，单位为字节。
+    """
+    if size < 1024:
+        size = str(size) + "B"
+    elif size < 1024 ** 2:
+        size = str(round(size / 1024, 3)) + "KB"
+    elif size < 1024 ** 3:
+        size = str(round(size / (1024 ** 2), 3)) + "MB"
+    elif size < 1024 ** 4:
+        size = str(round(size / (1024 ** 3), 3)) + "GB"
+    else:
+        size = str(round(size / (1024 ** 4), 3)) + "TB"
+    return str(size)
 
 
 async def 文件模糊匹配(QQ: int, path: str, matcher: Matcher) -> str | None:
@@ -68,7 +79,7 @@ async def 文件模糊匹配(QQ: int, path: str, matcher: Matcher) -> str | None
 
 
 async def 文件夹模糊匹配(QQ: int, path: str, matcher: Matcher) -> str | None:
-    """根据百度网盘文件路径进行模糊匹配，成功匹配返回对应文件夹路径，文件夹路径必以"/"结尾，失败返回None"""
+    """根据百度网盘文件路径进行模糊匹配，仅匹配文件夹路径。成功匹配返回对应文件夹路径，文件夹路径必以"/"结尾，失败返回None"""
     # 若用户不存在
     if str(QQ) not in baidu.Api.Pan.userInfo.keys():
         return None

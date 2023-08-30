@@ -8,6 +8,7 @@
 import re
 import os
 import random
+import time
 
 from nonebot import on_regex
 from nonebot.adapters.onebot.v11 import MessageEvent, GroupMessageEvent, PrivateMessageEvent, Bot, MessageSegment
@@ -18,8 +19,9 @@ from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.File import DirExist
 import Hiyori.Utils.API.Baidu.Pan as baiduPan
 from Hiyori.Utils.API.Baidu import baidu
+from Hiyori.Utils.Time import printTimeInfo
 
-from .utils import printFileInfo, 文件模糊匹配, 文件夹模糊匹配
+from .utils import printFileInfo, 文件模糊匹配, 文件夹模糊匹配, printSizeInfo
 
 __plugin_meta__ = PluginMetadata(
     name="妃爱网盘",
@@ -27,8 +29,9 @@ __plugin_meta__ = PluginMetadata(
     usage="pan ls 【查询当前路径目录】\n"
           "pan cd 路径 【切换到指定路径，可模糊匹配】\n"
           "pan dl 文件路径 【下载指定文件到对应群聊/私聊】\n"
-          "pan login 【百度网盘登录】"
-          "pan logout 【百度网盘登出】",
+          "pan login 【百度网盘登录】\n"
+          "pan logout 【百度网盘登出】\n"
+          "pan df 【查询网盘容量】",
     extra={
         "CD_Weight": 2,
         "example": "",
@@ -45,6 +48,7 @@ download = on_regex(r"^pan\s+dl\s+", priority=Priority.普通优先级, block=Tr
 login = on_regex(r"^pan\s+login", priority=Priority.普通优先级, block=True)
 logout = on_regex(r"^pan\s+logout", priority=Priority.普通优先级, block=True)
 delete = on_regex(r"^pan\s+rm", priority=Priority.普通优先级, block=True)
+disk = on_regex(r"^pan\s+df", priority=Priority.普通优先级, block=True)
 
 
 async def initFunc(QQ: int, matcher: Matcher):
@@ -74,7 +78,7 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
     global Dir
     QQ = event.user_id
     await initFunc(QQ, matcher)
-    goto = re.sub(r"^pan\s+cd\s+", string=str(event.message), repl="")
+    goto = re.sub(r"^pan\s+cd\s+", string=event.message.extract_plain_text(), repl="")
     if goto.startswith("/"):
         newDir = goto
         infos = await baiduPan.listDir(path=newDir, QQ=QQ, matcher=matcher)
@@ -148,23 +152,29 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
     global Dir
     QQ = event.user_id
     await initFunc(QQ, matcher)
-    file = re.sub(r"^pan\s+dl\s+", string=str(event.message), repl="")
+    file = re.sub(r"^pan\s+dl\s+", string=event.message.extract_plain_text(), repl="")
     if file.startswith("/"):
         file = file
     else:
         file = os.path.normpath(Dir[QQ] + file)
         file = file.replace("\\", "/")
-    fileName = os.path.basename(file)
     DirExist("Data/BaiduPan/Cache")
     localPath = os.path.abspath(os.path.join("Data/BaiduPan/Cache", str(random.randint(1, 10 ** 10)) + ".hiyoriCache"))
+    startTime = time.time_ns()
     try:
-        await baiduPan.downloadFile(localPath=localPath, panPath=file, QQ=QQ, matcher=matcher)
+        size, fileName = await baiduPan.downloadFile(localPath=localPath, panPath=file, QQ=QQ, matcher=matcher, fuzzy_matching=True)
     except Exception:
-        await download.send("文件下载失败")
+        msg = MessageSegment.at(event.user_id) + "文件下载失败，网络故障或文件不存在。"
+        await download.send(msg)
         if os.path.exists(localPath):
             os.remove(path=localPath)
         return
+    endTime = time.time_ns()
     try:
+        msg = MessageSegment.at(
+            event.user_id) + f"网盘文件：{fileName}下载完毕，文件大小{printSizeInfo(size)}，用时{printTimeInfo(endTime - startTime, 3)}。正在上传"
+        await download.send(msg)
+        startTime = time.time_ns()
         if isinstance(event, PrivateMessageEvent):
             QQ = event.user_id
             await bot.call_api(api="upload_private_file", **{"user_id": QQ, "file": localPath, "name": fileName})
@@ -172,10 +182,14 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
             Group = event.group_id
             await bot.call_api(api="upload_group_file", **{"group_id": Group, "file": localPath, "name": fileName})
     except Exception:
-        await download.send("文件上传失败")
+        msg = MessageSegment.at(event.user_id) + "文件上传失败"
+        await download.send(msg)
         if os.path.exists(localPath):
             os.remove(path=localPath)
         return
+    endTime = time.time_ns()
+    msg = MessageSegment.at(event.user_id) + f"文件上传成功，用时{printTimeInfo(endTime - startTime, 3)}"
+    await download.send(msg)
     if os.path.exists(localPath):
         os.remove(path=localPath)
 
@@ -205,3 +219,18 @@ async def _(matcher: Matcher, event: MessageEvent):
     QQ = event.user_id
     await initFunc(QQ, matcher)
     file = re.sub(r"^pan\s+rm", string=str(event.message), repl="")
+
+
+@disk.handle()
+async def _(matcher: Matcher, event: MessageEvent):
+    QQ = event.user_id
+    await initFunc(QQ, matcher)
+    info = await baiduPan.diskInfo(QQ, matcher)
+    if info is None:
+        msg = MessageSegment.at(event.user_id) + "网盘容量查询失败"
+        await disk.send(msg)
+    else:
+        used = printSizeInfo(info["used"])
+        total = printSizeInfo(info["total"])
+        msg = MessageSegment.at(event.user_id) + f"当前网盘使用情况：{used}/{total}"
+        await disk.send(msg)
