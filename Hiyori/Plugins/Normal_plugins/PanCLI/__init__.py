@@ -21,14 +21,14 @@ import Hiyori.Utils.API.Baidu.Pan as baiduPan
 from Hiyori.Utils.API.Baidu import baidu
 from Hiyori.Utils.Time import printTimeInfo
 
-from .utils import printFileInfo, 文件模糊匹配, 文件夹模糊匹配, printSizeInfo
+from .utils import printFileInfo, printSizeInfo
 
 __plugin_meta__ = PluginMetadata(
     name="妃爱网盘",
     description="通过妃爱操作百度网盘。",
     usage="pan ls 【查询当前路径目录】\n"
           "pan cd 路径 【切换到指定路径，可模糊匹配】\n"
-          "pan dl 文件路径 【下载指定文件到对应群聊/私聊】\n"
+          "pan dl 文件路径 【下载指定文件到对应群聊/私聊，可模糊匹配】\n"
           "pan login 【百度网盘登录】\n"
           "pan logout 【百度网盘登出】\n"
           "pan df 【查询网盘容量】",
@@ -81,69 +81,35 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
     goto = re.sub(r"^pan\s+cd\s+", string=event.message.extract_plain_text(), repl="")
     if goto.startswith("/"):
         newDir = goto
-        infos = await baiduPan.listDir(path=newDir, QQ=QQ, matcher=matcher)
-        # 精确匹配不存在则进行模糊匹配
-        if infos is None:
-            # 进行模糊查找
-            newDir = await 文件夹模糊匹配(path=newDir, QQ=QQ, matcher=matcher)
-            if newDir is None:
-                await cd.send("目录不存在")
-                return
-            else:
-                infos = await baiduPan.listDir(path=newDir, QQ=QQ, matcher=matcher)
-        # 判断是空文件夹还是文件
-        if len(infos) == 0:
-            breakFlag = True
-            if newDir.endswith("/"):
-                newDir = newDir.rstrip("/")  # 去掉尾部的/来获取正确上级文件夹
-            新路径的上级文件夹路径 = os.path.dirname(newDir)
-            新路径文件名 = os.path.basename(newDir)
-            infos2 = await baiduPan.listDir(path=新路径的上级文件夹路径, QQ=QQ, matcher=matcher)
-            for info in infos2:
-                if info["server_filename"] == 新路径文件名 and info["isdir"] == 1:
-                    breakFlag = False
-                    break
-            if breakFlag:
-                await cd.send("路径不是目录")
-                return
-        if not newDir.endswith("/"):
-            newDir += "/"
-        Dir[QQ] = newDir
-        await cd.send(printFileInfo(infos=infos, msgBefore=f"[pan {QQ}]$    {Dir[QQ]}>\n"))
-        return
     else:
         # newDir = os.path.join(Dir[QQ], goto)
         newDir = os.path.normpath(Dir[QQ] + goto)
         newDir = newDir.replace("\\", "/")
-        infos = await baiduPan.listDir(path=newDir, QQ=QQ, matcher=matcher)
-        if infos is None:
-            # 进行模糊查找
-            newDir = await 文件夹模糊匹配(path=newDir, QQ=QQ, matcher=matcher)
-            if newDir is None:
-                await cd.send("目录不存在")
-                return
-            else:
-                infos = await baiduPan.listDir(path=newDir, QQ=QQ, matcher=matcher)
-        # 判断是空文件夹还是文件
-        if len(infos) == 0:
-            breakFlag = True
-            if newDir.endswith("/"):
-                newDir = newDir.rstrip("/")  # 去掉尾部的/来获取正确上级文件夹
-            新路径的上级文件夹路径 = os.path.dirname(newDir)
-            新路径文件名 = os.path.basename(newDir)
-            infos2 = await baiduPan.listDir(path=新路径的上级文件夹路径, QQ=QQ, matcher=matcher)
-            for info in infos2:
-                if info["server_filename"] == 新路径文件名 and info["isdir"] == 1:
-                    breakFlag = False
-                    break
-            if breakFlag:
-                await cd.send("路径不是目录")
-                return
+    # 模糊查询新文件夹信息
+    newDirInfo = await baiduPan.fileInfo(QQ=QQ, matcher=matcher, path=newDir, ignoreFile=True, fuzzy_matching=True)
+    if newDirInfo is None:
+        msg = MessageSegment.at(event.user_id) + "目录不存在"
+        await cd.send(msg)
+        return
+    else:
+        if newDir.endswith("/"):
+            newDir = newDir.rstrip("/")
+        newDirName: str = newDirInfo["filename"]
+        newDir = os.path.join(os.path.dirname(newDir), newDirName)
+        # 文件名标准化，必须为'/'，不能包含'\'，且路径必须以'/'结尾
+        newDir = newDir.replace("\\", "/")
         if not newDir.endswith("/"):
             newDir += "/"
-        Dir[QQ] = newDir
-        await cd.send(printFileInfo(infos=infos, msgBefore=f"[pan {QQ}]$    {Dir[QQ]}>\n"))
-        return
+        infos = await baiduPan.listDir(QQ=QQ, path=newDir, matcher=matcher)
+        if infos is None:
+            msg = MessageSegment.at(event.user_id) + "目录不存在"
+            await cd.send(msg)
+            return
+        else:
+            # 打印目录，并将当前目录切换至该目录
+            Dir[QQ] = newDir
+            await cd.send(printFileInfo(infos=infos, msgBefore=f"[pan {QQ}]$    {Dir[QQ]}>\n"))
+            return
 
 
 @download.handle()
@@ -216,6 +182,7 @@ async def _(matcher: Matcher, event: MessageEvent):
 
 @delete.handle()
 async def _(matcher: Matcher, event: MessageEvent):
+    global Dir
     QQ = event.user_id
     await initFunc(QQ, matcher)
     file = re.sub(r"^pan\s+rm", string=str(event.message), repl="")

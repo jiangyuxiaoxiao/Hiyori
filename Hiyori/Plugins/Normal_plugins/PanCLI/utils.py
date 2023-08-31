@@ -7,6 +7,7 @@
 """
 import os
 from io import BytesIO
+import warnings
 
 from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import MessageSegment
@@ -56,48 +57,3 @@ def printSizeInfo(size: int) -> str:
     return str(size)
 
 
-async def 文件模糊匹配(QQ: int, path: str, matcher: Matcher) -> str | None:
-    """根据百度网盘文件路径进行模糊匹配，成功匹配返回对应路径，失败返回None"""
-    # 若用户不存在
-    if str(QQ) not in baidu.Api.Pan.userInfo.keys():
-        return None
-    if path.endswith("/"):
-        path = path.rstrip("/")
-    # 确定目录是否存在
-    dirName = os.path.dirname(path)
-    fileName = os.path.basename(path)
-    infos = await baiduPan.listDir(path=dirName, QQ=QQ, matcher=matcher)
-    if infos is None:
-        return None
-    else:
-        # 逐个匹配
-        for info in infos:
-            # 匹配开头
-            if info["server_filename"].startswith(fileName):
-                return info["path"]
-    return None
-
-
-async def 文件夹模糊匹配(QQ: int, path: str, matcher: Matcher) -> str | None:
-    """根据百度网盘文件路径进行模糊匹配，仅匹配文件夹路径。成功匹配返回对应文件夹路径，文件夹路径必以"/"结尾，失败返回None"""
-    # 若用户不存在
-    if str(QQ) not in baidu.Api.Pan.userInfo.keys():
-        return None
-    if path.endswith("/"):
-        path = path.rstrip("/")
-    # 确定目录是否存在
-    dirName = os.path.dirname(path)
-    fileName = os.path.basename(path)
-    infos = await baiduPan.listDir(path=dirName, QQ=QQ, matcher=matcher)
-    if infos is None:
-        return None
-    else:
-        # 逐个匹配
-        for info in infos:
-            # 匹配开头，且文件类型为文件夹
-            if info["server_filename"].startswith(fileName) and info["isdir"] == 1:
-                path: str = info["path"]
-                if not path.endswith("/"):
-                    path += "/"
-                    return path
-    return None

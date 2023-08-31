@@ -20,9 +20,9 @@ def printTimeInfo(nsTime: int, roundNum: int = 3) -> str:
     elif nsTime < 3600 * (10 ** 9):
         minute = int(nsTime / (60 * (10 ** 9)))
         second = round((nsTime - minute * 60 * (10 ** 9)) / (10 ** 9), roundNum)
-        time = f"{minute}min {second}s"
+        time = f"{minute}min{second}s"
     else:
         hour = int(nsTime / (3600 * (10 ** 9)))
         minute = int((nsTime - hour * 3600 * (10 ** 9)) / (60 * (10 ** 9)))
-        time = f"{hour}h {minute}min"
+        time = f"{hour}h{minute}min"
     return time

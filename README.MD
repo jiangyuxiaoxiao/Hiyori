@@ -15,6 +15,9 @@
       <a href="https://github.com/Mrs4s/go-cqhttp">
         <img alt="go cqhttp-1.1.0" src="https://img.shields.io/badge/go cqhttp-1.1.0-orange">
       </a>
+      <a href="https://wakatime.com/badge/user/7b275a68-8fe7-44fb-9b22-86cfd199fc1e/project/3d1eb992-cc9a-4fee-8d6a-337d2fee4569">
+        <img src="https://wakatime.com/badge/user/7b275a68-8fe7-44fb-9b22-86cfd199fc1e/project/3d1eb992-cc9a-4fee-8d6a-337d2fee4569.svg" alt="wakatime">
+      </a>
       <img alt="go cqhttp-1.1.0" src="https://img.shields.io/badge/QQ群-471138696-orange">
     </p>  
    <a href="http://和泉妃爱.com">
@@ -103,16 +106,16 @@ python3 hiyori.py
 
 ```json
 {
-  "默认优先顺序": [
-    "QQ号",
-    "QQ号",
-    "QQ号"
-  ],
-  "群组规则": {
-    "群号1": "QQ号",
-    "群号2": "QQ号",
-    "群号3": "QQ号"
-  }
+    "默认优先顺序": [
+        "QQ号",
+        "QQ号",
+        "QQ号"
+    ],
+    "群组规则": {
+        "群号1": "QQ号",
+        "群号2": "QQ号",
+        "群号3": "QQ号"
+    }
 }
 ```
 

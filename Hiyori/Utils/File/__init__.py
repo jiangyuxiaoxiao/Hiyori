@@ -7,7 +7,6 @@
 """
 import os
 import json
-
 from nonebot.log import logger
 
 
