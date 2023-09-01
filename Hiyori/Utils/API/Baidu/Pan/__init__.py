@@ -7,6 +7,7 @@
 """
 from Hiyori.Utils.API.Baidu import baidu
 from nonebot.matcher import Matcher
+from nonebot.adapters.onebot.v11 import Bot
 import aiohttp
 import urllib.parse
 import os
