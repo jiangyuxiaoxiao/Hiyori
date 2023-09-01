@@ -5,11 +5,13 @@
 @Desc: QQ群组文件相关封装
 @Ver : 1.0.0
 """
+import asyncio
 import json
 import os
-from tenacity import retry, stop_after_attempt
-from aiohttp import ClientSession, ClientTimeout
+from tenacity import retry, stop_after_attempt, wait_fixed
+from aiohttp import ClientSession, ClientTimeout, TCPConnector
 import aiofiles
+import traceback
 
 from nonebot.adapters.onebot.v11 import Bot
 
@@ -89,30 +91,36 @@ class QQGroupFile:
         data = json.loads(jsonStr)
         return cls.from_dict(data)
 
-    @retry(stop=stop_after_attempt(3))
+    @retry(stop=stop_after_attempt(20), wait=wait_fixed(5))
     async def download(self, path: str, bot: Bot, session: ClientSession = None):
         """
-        将群文件下载到本地文件夹，最多尝试三次。
+        将群文件下载到本地文件夹，最多尝试二次。
         :param bot: bot
         :param path: 本地路径
         :param session: 若传入session则使用session，否则使用独立session
         """
         url = await bot.get_group_file_url(group_id=self.group_id, file_id=self.file_id, busid=self.busid)
         url = url["url"]
-        print(f"尝试下载文件{self.file_name}")
         if session is None:
             async with ClientSession() as s:
                 async with s.get(url=url) as response:
                     async with aiofiles.open(file=path, mode="wb") as file:
                         # 默认设置流式传输为 20M，需要更小则自行设置
+                        print(f"写入文件{self.file_name}")
                         async for chunk in response.content.iter_chunked(20 * 1024 * 1024):
                             await file.write(chunk)
         else:
             async with session.get(url=url) as response:
                 async with aiofiles.open(file=path, mode="wb") as file:
                     # 默认设置流式传输为 20M，需要更小则自行设置
+                    print(f"写入文件{self.file_name}")
                     async for chunk in response.content.iter_chunked(20 * 1024 * 1024):
                         await file.write(chunk)
+
+
+class FileDownloadException(Exception):
+    def __init__(self, f: QQGroupFile):
+        self.file = f
 
 
 class QQGroupFolder:
@@ -220,7 +228,7 @@ class QQGroupFolder:
         :param path: 指定下载目录，对于本folder来说，文件将会被下载到path/self.folder_name目录下
         :param bot: bot
         :param session: 若传入session则使用session，否则使用独立session
-        :return: 下载文件大小，错误信息列表
+        :return: 下载文件总大小，错误信息列表
         """
         downloadSize = 0
         downloadError = []
@@ -276,3 +284,117 @@ class QQGroupFolder:
                 downloadSize += size
                 downloadError += error
         return downloadSize, downloadError
+
+    async def concurrentDownload(self, dirPath: str, bot: Bot, concurrentNum: int = 5, ignoreTempFile: bool = False) -> (int, list):
+        """
+        并发下载群文件夹中的所有文件。\n
+        对于重名文件的处理：\n
+        + 若下载文件夹存在同名文件，直接覆盖
+        + 若群聊文件夹存在同盟文件夹，添加后缀
+        对于下载失败的处理：\n
+        + 若下载失败则对应文件的localPath = ""
+        + 若下载成功则写入对应的localPath，为相对路径
+
+        :param dirPath: 指定下载目录，对于本folder来说，文件将会被下载到path/self.folder_name目录下
+        :param bot: bot
+        :param concurrentNum: 最大并发数
+        :param ignoreTempFile: 是否忽略临时文件
+        :return: 下载文件总大小，错误信息列表
+        """
+
+        # 1. 遍历，递归统计所有文件对应路径
+        files: list[QQGroupFile] = []
+
+        def folderWalk(qqFolder: QQGroupFolder, dir_path: str) -> QQGroupFolder:
+            """遍历文件夹，计算所有文件夹的本地下载路径"""
+            # 修改自身信息
+            qqFolder.local_path = os.path.join(dir_path, qqFolder.folder_name).replace("\\", "/")
+            DirExist(qqFolder.local_path)
+            # 遍历修改所有子文件信息
+            fileNames = set()
+            for file_id in qqFolder.files.keys():
+                file = qqFolder.files[file_id]
+                filePath = os.path.join(qqFolder.local_path, file.file_name)
+                count = 1
+                while filePath in fileNames:
+                    # 文件名冲突，尝试重命名
+                    filePath = os.path.join(qqFolder.local_path, file.file_name)
+                    filePath = os.path.splitext(filePath)[0] + f"({count})" + os.path.splitext(filePath)[1]
+                    count += 1
+                fileNames.add(filePath)
+                file.local_path = filePath.replace("\\", "/")
+                qqFolder.files[file_id] = file
+                files.append(file)
+            # 遍历修改所有子文件夹信息
+            for folder_id, folder in qqFolder.folders.items():
+                qqFolder.folders[folder_id] = folderWalk(folder, qqFolder.local_path)
+            return qqFolder
+
+        async def downloadFile(f: QQGroupFile, path: str, b: Bot, s: ClientSession) -> QQGroupFile:
+            """文件下载封装，记录下载异常信息"""
+            try:
+                await f.download(path=path, bot=b, session=s)
+            except Exception:
+                raise FileDownloadException(f)
+            else:
+                return f
+
+        newInfo = folderWalk(self, dirPath)
+        self.local_path = newInfo.local_path.replace("\\", "/")
+        self.files = newInfo.files
+        self.folders = newInfo.folders
+        log_path = os.path.join(self.local_path, ".config")
+        error_path = os.path.join(self.local_path, ".error")
+
+        # 2. 并发下载所有文件，返回结果
+        async with asyncio.Semaphore(concurrentNum):
+            timeout = ClientTimeout(connect=2, sock_read=5)
+            connector = TCPConnector(limit=concurrentNum)
+            async with ClientSession(timeout=timeout, connector=connector) as session:
+                tasks = []
+                log = []
+
+                errorPath = set()  # 所有下载错误的路径
+                size = 0
+                for file in files:
+                    # 忽略临时文件
+                    if ignoreTempFile and file.dead_time != 0:
+                        errorPath.add(file.local_path)
+                        continue
+                    task = asyncio.create_task(downloadFile(f=file, path=file.local_path, b=bot, s=session))
+                    tasks.append(task)
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                # 记录信息
+                DirExist(error_path)
+                error_path = os.path.join(error_path, "error.log")
+                with open(file=error_path, mode="a", encoding="utf-8") as logFile:
+                    for result in results:
+                        if isinstance(result, FileDownloadException):
+                            log.append(result.file.file_name)
+                            traceback.print_exception(type(result), result, result.__traceback__, file=logFile)
+                            errorPath.add(result.file.local_path)
+                        elif isinstance(result, QQGroupFile):
+                            size += result.file_size
+
+        # 3. 修正localPath，剔除没有的path
+        def folderWalk2(qqFolder: QQGroupFolder) -> QQGroupFolder:
+            """遍历文件夹，剔除错误文件路径"""
+            # 修改自身信息
+            for file_id in qqFolder.files.keys():
+                if qqFolder.files[file_id].local_path in errorPath:
+                    qqFolder.files[file_id].local_path = ""
+            # 遍历修改所有子文件夹信息
+            for folder_id, folder in qqFolder.folders.items():
+                qqFolder.folders[folder_id] = folderWalk2(folder)
+            return qqFolder
+
+        newInfo = folderWalk2(self)
+        self.folders = newInfo.folders
+        self.files = newInfo.files
+
+        # 打印最终结果
+        DirExist(log_path)
+        log_path = os.path.join(log_path, "config.json")
+        with open(file=log_path, mode="w", encoding="utf-8") as f:
+            f.write(self.dumps())
+        return size, log
