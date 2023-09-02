@@ -80,7 +80,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
                                 create_time=0, creator=0, creator_name="", total_file_count=0,
                                 local_path="")
     await groupFolder.getGroupFolderInfo(getBot(GroupID))
-    msg = await groupFolder.Download(dirPath=f"Data/Debug/Debug_GroupFile", bot=bot, concurrentNum=concurrentNum,
+    msg = await groupFolder.Download(dirPath=f"Data/Groupfile_Backup", bot=bot, concurrentNum=concurrentNum,
                                      ignoreTempFile=ignoreTempFile, attemptCount=attemptCount, waitAfterFail=waitAfterFail,
                                      connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=originMode)
     try:
