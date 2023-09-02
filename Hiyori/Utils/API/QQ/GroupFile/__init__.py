@@ -338,7 +338,7 @@ class QQGroupFolder:
         :param connectTimeout: 单位秒，从发出请求到建立连接的等待最长时间，当超过这个时间会中断请求
         :param downloadTimeout: 单位秒，读取最长等待时间，当超过readTimeout的间隔时间没有从服务器接收到数据包会中断请求。注意：是间隔时间，当一个文件较大时可能需要花费较长时间，但是只要
         一直从服务器下载并不会中断对应的下载。只有当超过downloadTimeout时长没有接收到数据包才会中断请求
-        :param mode: 下载模式 ByName：根据上传用户名构建文件结构； Origin：根据群文件原始目录结构构建文件结构
+        :param mode: 下载模式 ByName：根据上传用户名构建文件结构(区分用户名/群号/用户名/群文件)； Origin：根据群文件原始目录结构构建文件结构(不区分用户名/群号/群文件)
         :return: 下载文件总大小，错误信息列表
         """
 
@@ -371,8 +371,11 @@ class QQGroupFolder:
 
         # 更新文件信息，收集所有需要下载的文件
         if mode == "Origin":
+            dirPath = os.path.join(dirPath, "不区分用户名").replace("\\", "/")
             files = self.updateLocalPaths(dirPath)
+
         else:
+            dirPath = os.path.join(dirPath, "区分用户名").replace("\\", "/")
             files = self.updateLocalPathsByName(dirPath)
 
         # 2. 并发下载所有文件，返回结果
@@ -420,7 +423,7 @@ class QQGroupFolder:
                     resultLogFile.write(msg)
 
         # 3. 修正localPath，剔除没有的path
-        def folderWalk2(qqFolder: QQGroupFolder) -> QQGroupFolder:
+        def folderWalk(qqFolder: QQGroupFolder) -> QQGroupFolder:
             """遍历文件夹，剔除错误文件路径"""
             # 修改自身信息
             for file_id in qqFolder.files.keys():
@@ -432,10 +435,10 @@ class QQGroupFolder:
                     qqFolder.files[file_id].local_modify_time = int(os.path.getmtime(qqFolder.files[file_id].local_path) * 1000)
             # 遍历修改所有子文件夹信息
             for folder_id, folder in qqFolder.folders.items():
-                folderWalk2(qqFolder.folders[folder_id])
+                folderWalk(qqFolder.folders[folder_id])
             return qqFolder
 
-        folderWalk2(self)
+        folderWalk(self)
 
         # 打印最终结果
         # 打印文件树
@@ -449,7 +452,8 @@ class QQGroupFolder:
         return msg
 
     async def SyncFromGroup(self, dirPath: str, bot: Bot, concurrentNum: int = 20, ignoreTempFile: bool = False, attemptCount: int | None = None,
-                            waitAfterFail: int | float | None = None, connectTimeout: float | None = 2, downloadTimeout: float | None = 5) -> str:
+                            waitAfterFail: int | float | None = None, connectTimeout: float | None = 2, downloadTimeout: float | None = 5,
+                            mode: str = "ByName") -> str:
         """
         从群文件夹将文件同步到本地。\n
         此为单向同步功能，方向为将群文件同步到本地。\n
@@ -478,6 +482,7 @@ class QQGroupFolder:
         :param connectTimeout: 单位秒，从发出请求到建立连接的等待最长时间，当超过这个时间会中断请求
         :param downloadTimeout: 单位秒，读取最长等待时间，当超过readTimeout的间隔时间没有从服务器接收到数据包会中断请求。注意：是间隔时间，当一个文件较大时可能需要花费较长时间，但是只要
         一直从服务器下载并不会中断对应的下载。只有当超过downloadTimeout时长没有接收到数据包才会中断请求
+        :param mode: 同步模式 ByName：根据上传用户名构建文件结构； Origin：根据群文件原始目录结构构建文件结构
         :return: 下载文件总大小，错误信息列表
         """
 
@@ -497,7 +502,6 @@ class QQGroupFolder:
             result = await self.Download(dirPath=dirPath, bot=bot, concurrentNum=concurrentNum, ignoreTempFile=ignoreTempFile, attemptCount=attemptCount,
                                          waitAfterFail=waitAfterFail, connectTimeout=connectTimeout, downloadTimeout=downloadTimeout)
             return result
-
         # 3. 将本地文件树与当前群聊文件树进行比对
 
 
