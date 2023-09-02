@@ -32,14 +32,14 @@ class QQGroupFile:
         :param file_name:文件名
         :param busid:文件类型
         :param file_size:文件大小
-        :param upload_time:上传时间
+        :param upload_time:上传时间，10位时间戳
         :param dead_time:过期时间,永久文件恒为0
-        :param modify_time:最后修改时间
+        :param modify_time:最后修改时间，10位时间戳
         :param download_times:下载次数
         :param uploader:上传者ID
         :param uploader_name:上传者名字
         :param local_path:本地保存绝对路径
-        :param local_modify_time:本地最后修改时间
+        :param local_modify_time:本地最后修改时间，13位时间戳
         """
         self.group_id: int = group_id
         self.file_id: str = file_id
@@ -226,11 +226,83 @@ class QQGroupFolder:
                 await folder.getGroupFolderInfo(bot)
                 self.folders[folder.folder_id] = folder
 
-    async def concurrentDownload(self, dirPath: str, bot: Bot, concurrentNum: int = 20, ignoreTempFile: bool = False, attemptCount: int | None = None,
-                                 waitAfterFail: int | float | None = None, connectTimeout: float | None = 2, downloadTimeout: float | None = 5) -> str:
+    def updateLocalPaths(self, dir_path: str) -> list[QQGroupFile]:
+        """遍历文件夹，计算所有文件夹的本地下载路径，返回收集到的所有文件列表"""
+        files: list[QQGroupFile] = []
+        # 修改自身信息
+        self.local_path = os.path.join(dir_path, self.folder_name).replace("\\", "/")
+        DirExist(self.local_path)
+        # 遍历修改所有子文件信息
+        fileNames = set()
+        for file_id in self.files.keys():
+            filePath = os.path.join(self.local_path, self.files[file_id].file_name)
+            count = 1
+            while filePath in fileNames:
+                # 文件名冲突，尝试重命名
+                filePath = os.path.join(self.local_path, self.files[file_id].file_name)
+                filePath = os.path.splitext(filePath)[0] + f"({count})" + os.path.splitext(filePath)[1]
+                count += 1
+            fileNames.add(filePath)
+            self.files[file_id].local_path = filePath.replace("\\", "/")
+            files.append(self.files[file_id])
+
+        # 遍历修改所有子文件夹信息
+        for folder_id, folder in self.folders.items():
+            files += folder.updateLocalPaths(self.local_path)
+
+        return files
+
+    def updateLocalPathsByName(self, dir_path: str) -> list[QQGroupFile]:
+        """
+        遍历文件夹，计算所有文件夹的本地下载路径，文件路径结构为群名/人名/群文件，返回收集到的所有文件列表
+
+        :param dir_path: 文件夹路径
+        """
+        fileNames = set()  # 用于统计重复的文件名
+        fileDirs = set()  # 用于统计相同的文件夹
+
+        # self.local_path = os.path.join(dir_path, self.folder_name).replace("\\", "/")
+
+        def _updateLocalPathsByName(folder: QQGroupFolder, dir_path: str, basePath: str) -> list[QQGroupFile]:
+            """遍历闭包函数"""
+            # 修改自身信息
+            # 对于文件夹而言，其记录的localPath并非实际的Path，而与updateLocalPaths的路径保持一致
+            files: list[QQGroupFile] = []
+            folder.local_path = os.path.join(dir_path, folder.folder_name).replace("\\", "/")
+            for file_id in folder.files.keys():
+                # 计算文件实际路径目录
+                relPath = os.path.relpath(folder.local_path, basePath)
+                fileDir = os.path.join(basePath, folder.files[file_id].uploader_name, relPath)
+                if fileDir not in fileDirs:
+                    DirExist(fileDir)
+                    fileDirs.add(fileDir)
+                filePath = os.path.normpath(os.path.join(fileDir, folder.files[file_id].file_name))
+                # 检查文件名是否重复
+                count = 1
+                while filePath in fileNames:
+                    # 文件名冲突，尝试重命名
+                    filePath = os.path.normpath(os.path.join(fileDir, folder.files[file_id].file_name))
+                    filePath = os.path.splitext(filePath)[0] + f"({count})" + os.path.splitext(filePath)[1]
+                    count += 1
+                fileNames.add(filePath)
+                folder.files[file_id].local_path = filePath.replace("\\", "/")
+                files.append(folder.files[file_id])
+
+            # 遍历修改所有子文件夹信息
+            for folder_id, _folder in folder.folders.items():
+                files += _updateLocalPathsByName(_folder, folder.local_path, basePath)
+
+            return files
+
+        # 遍历修改所有子文件信息
+        return _updateLocalPathsByName(self, dir_path=dir_path, basePath=os.path.join(dir_path, self.folder_name).replace("\\", "/"))
+
+    async def Download(self, dirPath: str, bot: Bot, concurrentNum: int = 20, ignoreTempFile: bool = False, attemptCount: int | None = None,
+                       waitAfterFail: int | float | None = None, connectTimeout: float | None = 2, downloadTimeout: float | None = 5,
+                       mode: str = "ByName") -> str:
         """
         并发下载群文件夹中的所有文件。\n
-        concurrentNum = 1等效于同步下载，因此不再实现\n
+        concurrentNum = 1等效于阻塞下载，因此不再实现\n
         对于重名文件的处理：\n
         + 若下载文件夹存在同名文件，直接覆盖
         + 若群聊文件夹存在同盟文件夹，添加后缀
@@ -255,8 +327,10 @@ class QQGroupFolder:
         :param connectTimeout: 单位秒，从发出请求到建立连接的等待最长时间，当超过这个时间会中断请求
         :param downloadTimeout: 单位秒，读取最长等待时间，当超过readTimeout的间隔时间没有从服务器接收到数据包会中断请求。注意：是间隔时间，当一个文件较大时可能需要花费较长时间，但是只要
         一直从服务器下载并不会中断对应的下载。只有当超过downloadTimeout时长没有接收到数据包才会中断请求
+        :param mode: 下载模式 ByName：根据上传用户名构建文件结构； Origin：根据群文件原始目录结构构建文件结构
         :return: 下载文件总大小，错误信息列表
         """
+
         class FileDownloadException(Exception):
             """文件下载异常类"""
 
@@ -271,33 +345,6 @@ class QQGroupFolder:
         # 1. 遍历，递归统计所有文件对应路径
         start = time.time_ns()
         date = datetime.datetime.now().strftime("%Y年%m月%d日 %H时%M分%S秒")
-        files: list[QQGroupFile] = []  # 收集到的文件列表
-
-        def folderWalk(qqFolder: QQGroupFolder, dir_path: str) -> QQGroupFolder:
-            """遍历文件夹，计算所有文件夹的本地下载路径"""
-            # 修改自身信息
-            qqFolder.local_path = os.path.join(dir_path, qqFolder.folder_name).replace("\\", "/")
-            DirExist(qqFolder.local_path)
-            # 遍历修改所有子文件信息
-            fileNames = set()
-            for file_id in qqFolder.files.keys():
-                file = qqFolder.files[file_id]
-                filePath = os.path.join(qqFolder.local_path, file.file_name)
-                count = 1
-                while filePath in fileNames:
-                    # 文件名冲突，尝试重命名
-                    filePath = os.path.join(qqFolder.local_path, file.file_name)
-                    filePath = os.path.splitext(filePath)[0] + f"({count})" + os.path.splitext(filePath)[1]
-                    count += 1
-                fileNames.add(filePath)
-                file.local_path = filePath.replace("\\", "/")
-                qqFolder.files[file_id] = file
-                files.append(file)
-            # 遍历修改所有子文件夹信息
-            for folder_id, folder in qqFolder.folders.items():
-                # qqFolder.folders[folder_id] = folderWalk(folder, qqFolder.local_path)
-                folderWalk(folder, qqFolder.local_path)
-            return qqFolder
 
         async def downloadFileWrapper(qf: QQGroupFile, path: str, b: Bot, s: ClientSession = None) -> QQGroupFile:
             """
@@ -311,12 +358,11 @@ class QQGroupFolder:
             else:
                 return qf
 
-        # 更新文件信息
-        folderWalk(self, dirPath)
-        # newInfo = folderWalk(self, dirPath)
-        # self.local_path = newInfo.local_path.replace("\\", "/")
-        # self.files = newInfo.files
-        # self.folders = newInfo.folders
+        # 更新文件信息，收集所有需要下载的文件
+        if mode == "Origin":
+            files = self.updateLocalPaths(dirPath)
+        else:
+            files = self.updateLocalPathsByName(dirPath)
 
         # 2. 并发下载所有文件，返回结果
         async with asyncio.Semaphore(concurrentNum):
@@ -324,7 +370,6 @@ class QQGroupFolder:
             connector = TCPConnector(limit=concurrentNum)
             async with ClientSession(timeout=timeout, connector=connector) as session:
                 tasks = []
-                failedFilesName = []  # 所有下载错误文件名
                 failedFilesPath = set()  # 所有下载错误的路径
                 tempFilesPath = set()
                 totalDownloadBytes = 0  # 总下载字节数
@@ -345,19 +390,22 @@ class QQGroupFolder:
                 with open(file=logPath, mode="a", encoding="utf-8") as resultLogFile:
                     for result in results:
                         if isinstance(result, FileDownloadException):
-                            failedFilesName.append(result.file.file_name)
+                            # 对于错误文件，将报错信息写入log
                             traceback.print_exception(type(result), result, result.__traceback__, file=resultLogFile)
                             failedFilesPath.add(result.file.local_path)
                         elif isinstance(result, QQGroupFile):
+                            # 对于成功下载文件，计算总下载大小
                             totalDownloadBytes += result.file_size
                 resultLogPath = os.path.join(logDir, f"result.log")
                 with open(file=resultLogPath, mode="a", encoding="utf-8") as resultLogFile:
-                    failedFilesPath = "\n".join(
+                    failedFilesPathStr = "\n".join(
                         [os.path.relpath(path, dirPath).replace("\\", "/") for path in failedFilesPath]
                     ) if failedFilesPath else "无下载错误文件"
-                    msg = f"群文件下载完成，总下载大小{printSizeInfo(totalDownloadBytes)}，用时{printTimeInfo(end - start, 3)}。\n" \
+                    msg = f"群文件下载完成，总下载文件数{len(files) - len(failedFilesPath) - len(tempFilesPath)}，" \
+                          f"下载错误数{len(failedFilesPath)}，跳过临时文件数{len(tempFilesPath)}。" \
+                          f"总下载大小{printSizeInfo(totalDownloadBytes)}，用时{printTimeInfo(end - start, 3)}。\n" \
                           f"下载错误文件列表：\n" \
-                          f"{failedFilesPath}"
+                          f"{failedFilesPathStr}"
                     resultLogFile.write(msg)
 
         # 3. 修正localPath，剔除没有的path
@@ -365,18 +413,18 @@ class QQGroupFolder:
             """遍历文件夹，剔除错误文件路径"""
             # 修改自身信息
             for file_id in qqFolder.files.keys():
+                # 删除错误文件和临时文件的本地路径信息，没有本地路径信息的文件被视为没有下载
                 if qqFolder.files[file_id].local_path in failedFilesPath or qqFolder.files[file_id].local_path in tempFilesPath:
                     qqFolder.files[file_id].local_path = ""
+                # 对于正确下载的文件，记录本地最后修改日期
+                else:
+                    qqFolder.files[file_id].local_modify_time = int(os.path.getmtime(qqFolder.files[file_id].local_path) * 1000)
             # 遍历修改所有子文件夹信息
             for folder_id, folder in qqFolder.folders.items():
-                # qqFolder.folders[folder_id] = folderWalk2(folder)
                 folderWalk2(qqFolder.folders[folder_id])
             return qqFolder
 
         folderWalk2(self)
-        # newInfo = folderWalk2(self)
-        # self.folders = newInfo.folders
-        # self.files = newInfo.files
 
         # 打印最终结果
         # 打印文件树
@@ -388,6 +436,58 @@ class QQGroupFolder:
         # 打印日志信息
 
         return msg
+
+    async def SyncFromGroup(self, dirPath: str, bot: Bot, concurrentNum: int = 20, ignoreTempFile: bool = False, attemptCount: int | None = None,
+                            waitAfterFail: int | float | None = None, connectTimeout: float | None = 2, downloadTimeout: float | None = 5) -> str:
+        """
+        从群文件夹将文件同步到本地。\n
+        此为单向同步功能，方向为将群文件同步到本地。\n
+        concurrentNum = 1等效于阻塞下载，因此不再实现\n
+        对于重名文件的处理：\n
+        + 若文件ID不同：下载并覆盖
+        + 若文件ID相同，服务器最后修改时间不同：下载并覆盖
+        + 若文件ID相同，服务器最后修改时间相同：跳过
+        对于已有config.json的处理:\n
+        + 下载完成后进行覆盖
+        对于下载失败文件的处理：\n
+        + 若下载失败则不修改对应文件的config
+        对于临时文件的处理：\n
+        当下载临时文件时，速度可能较慢甚至无法正常下载，导致耗时较长。可以传入ignoreTempFile=True来屏蔽临时文件下载。
+        对于日志的写入：当下载完成后：\n
+        + 将下载文件的树状结构图写入/.config/config.json中
+        + 将报错信息栈写入/.log/error.log中
+        + 将下载日志写入/.log/result.log中
+
+        :param dirPath: 指定下载目录，对于本folder来说，文件将会被下载到path/self.folder_name目录下
+        :param bot: bot
+        :param concurrentNum: 下载并发数
+        :param ignoreTempFile: 是否忽略临时文件
+        :param attemptCount: 下载重试次数
+        :param waitAfterFail: 下载失败后等待时间
+        :param connectTimeout: 单位秒，从发出请求到建立连接的等待最长时间，当超过这个时间会中断请求
+        :param downloadTimeout: 单位秒，读取最长等待时间，当超过readTimeout的间隔时间没有从服务器接收到数据包会中断请求。注意：是间隔时间，当一个文件较大时可能需要花费较长时间，但是只要
+        一直从服务器下载并不会中断对应的下载。只有当超过downloadTimeout时长没有接收到数据包才会中断请求
+        :return: 下载文件总大小，错误信息列表
+        """
+
+        # 1. 判断config.json是否存在，不存在则直接调用download进行下载。
+        configPath = os.path.join(dirPath, ".config", "config.json")
+        if not os.path.isfile(configPath):
+            result = await self.Download(dirPath=dirPath, bot=bot, concurrentNum=concurrentNum, ignoreTempFile=ignoreTempFile, attemptCount=attemptCount,
+                                         waitAfterFail=waitAfterFail, connectTimeout=connectTimeout, downloadTimeout=downloadTimeout)
+            return result
+
+        # 2. 尝试读取本地config.json进行同步，若失败则调用download覆盖下载
+        try:
+            with open(configPath, mode="r", encoding="utf-8") as f:
+                data = f.read()
+            localGroupFile = QQGroupFile.from_dict(json.loads(data))
+        except Exception:
+            result = await self.Download(dirPath=dirPath, bot=bot, concurrentNum=concurrentNum, ignoreTempFile=ignoreTempFile, attemptCount=attemptCount,
+                                         waitAfterFail=waitAfterFail, connectTimeout=connectTimeout, downloadTimeout=downloadTimeout)
+            return result
+
+        # 3. 将本地文件树与当前群聊文件树进行比对
 
 
 # 工具函数
