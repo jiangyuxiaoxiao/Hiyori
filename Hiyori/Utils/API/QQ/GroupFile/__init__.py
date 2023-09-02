@@ -8,6 +8,7 @@
 import asyncio
 import json
 import os
+import re
 import time
 import datetime
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -258,7 +259,7 @@ class QQGroupFolder:
 
         :param dir_path: 文件夹路径
         """
-        fileNames = set()  # 用于统计重复的文件名
+        fileNames: dict[str, set[str]] = dict()  # 用于统计重复的文件名
         fileDirs = set()  # 用于统计相同的文件夹
 
         # self.local_path = os.path.join(dir_path, self.folder_name).replace("\\", "/")
@@ -270,21 +271,31 @@ class QQGroupFolder:
             files: list[QQGroupFile] = []
             folder.local_path = os.path.join(dir_path, folder.folder_name).replace("\\", "/")
             for file_id in folder.files.keys():
+                # 修正用户名，避免出现非法字符
+                if os.name == "nt":
+                    folder.files[file_id].uploader_name = re.sub(pattern=r'[\/:*?"<>|]', string=folder.files[file_id].uploader_name, repl="")
+                    if folder.files[file_id].uploader_name == "":
+                        folder.files[file_id].uploader_name = "default"
+                else:
+                    folder.files[file_id].uploader_name = folder.files[file_id].uploader_name.replace("/", "")
+                    if folder.files[file_id].uploader_name == "":
+                        folder.files[file_id].uploader_name = "default"
                 # 计算文件实际路径目录
                 relPath = os.path.relpath(folder.local_path, basePath)
                 fileDir = os.path.join(basePath, folder.files[file_id].uploader_name, relPath)
                 if fileDir not in fileDirs:
                     DirExist(fileDir)
                     fileDirs.add(fileDir)
+                    fileNames[fileDir] = set()
                 filePath = os.path.normpath(os.path.join(fileDir, folder.files[file_id].file_name))
                 # 检查文件名是否重复
                 count = 1
-                while filePath in fileNames:
+                while filePath in fileNames[fileDir]:
                     # 文件名冲突，尝试重命名
                     filePath = os.path.normpath(os.path.join(fileDir, folder.files[file_id].file_name))
                     filePath = os.path.splitext(filePath)[0] + f"({count})" + os.path.splitext(filePath)[1]
                     count += 1
-                fileNames.add(filePath)
+                fileNames[fileDir].add(filePath)
                 folder.files[file_id].local_path = filePath.replace("\\", "/")
                 files.append(folder.files[file_id])
 

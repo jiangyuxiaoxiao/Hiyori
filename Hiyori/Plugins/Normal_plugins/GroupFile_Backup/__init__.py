@@ -66,9 +66,9 @@ async def _(bot: Bot, event: GroupMessageEvent):
 
     concurrentNumStr = f"设置并发数{concurrentNum}，"
     attemptCountStr = f"设置重试次数{attemptCount}，" if attemptCount else ""
-    waitAfterFailStr = f"设置重试等待时间{waitAfterFail}，" if waitAfterFail else ""
-    connectTimeoutStr = f"设置连接超时{connectTimeout}，" if connectTimeout else ""
-    downloadTimeoutStr = f"设置下载超时{downloadTimeout}，" if downloadTimeout else ""
+    waitAfterFailStr = f"设置重试等待时间{waitAfterFail}s，" if waitAfterFail else ""
+    connectTimeoutStr = f"设置连接超时{connectTimeout}s，" if connectTimeout else ""
+    downloadTimeoutStr = f"设置下载超时{downloadTimeout}s，" if downloadTimeout else ""
     originModeStr = f"按群目录格式存储，" if args.origin else "按用户名/群目录格式存储，"
     ignoreTempFileStr = f"不下载临时文件" if ignoreTempFile else "下载临时文件"
 
@@ -80,7 +80,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
                                 create_time=0, creator=0, creator_name="", total_file_count=0,
                                 local_path="")
     await groupFolder.getGroupFolderInfo(getBot(GroupID))
-    msg = await groupFolder.Download(dirPath=f"Data/Groupfile_Backup", bot=bot, concurrentNum=concurrentNum,
+    msg = await groupFolder.Download(dirPath=f"Data/GroupFile_Backup", bot=bot, concurrentNum=concurrentNum,
                                      ignoreTempFile=ignoreTempFile, attemptCount=attemptCount, waitAfterFail=waitAfterFail,
                                      connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=originMode)
     try:
