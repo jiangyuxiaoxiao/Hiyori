@@ -79,10 +79,10 @@ async def _(bot: Bot, event: GroupMessageEvent):
     groupFolder = QQGroupFolder(group_id=GroupID, folder_id=None, folder_name=f"{GroupID}",
                                 create_time=0, creator=0, creator_name="", total_file_count=0,
                                 local_path="")
-    await groupFolder.getGroupFolderInfo(getBot(GroupID))
-    msg = await groupFolder.Download(dirPath=f"Data/GroupFile_Backup", bot=bot, concurrentNum=concurrentNum,
-                                     ignoreTempFile=ignoreTempFile, attemptCount=attemptCount, waitAfterFail=waitAfterFail,
-                                     connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=originMode)
+    await groupFolder.updateInfoFromQQ(getBot(GroupID))
+    msg = await groupFolder.SyncFromGroup(dirPath=f"Data/GroupFile_Backup", bot=bot, concurrentNum=concurrentNum,
+                                          ignoreTempFile=ignoreTempFile, attemptCount=attemptCount, waitAfterFail=waitAfterFail,
+                                          connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=originMode)
     try:
         await concurrentDownload.send(msg)
     except Exception:
