@@ -138,8 +138,8 @@ class QQGroupFile:
 class FileDownloadException(Exception):
     """文件下载异常类"""
 
-    def __init__(self, _file: QQGroupFile):
-        self.file = _file
+    def __init__(self, file: QQGroupFile):
+        self.file = file
 
 
 async def downloadFile(file: QQGroupFile, path: str, bot: Bot, session: ClientSession = None, attemptCount: int | None = None,
@@ -514,22 +514,7 @@ class QQGroupFolder:
                     resultLogFile.write(msg)
 
         # 3. 修正localPath，剔除没有的path
-        def folderWalk(qqFolder: QQGroupFolder) -> QQGroupFolder:
-            """遍历文件夹，剔除错误文件路径"""
-            # 修改自身信息
-            for file_id in qqFolder.files.keys():
-                # 删除错误文件和临时文件的本地路径信息，没有本地路径信息的文件被视为没有下载
-                if qqFolder.files[file_id].local_path in failedFilesPath or qqFolder.files[file_id].local_path in tempFilesPath:
-                    qqFolder.files[file_id].local_path = ""
-                # 对于正确下载的文件，记录本地最后修改日期
-                else:
-                    qqFolder.files[file_id].local_modify_time = int(os.path.getmtime(qqFolder.files[file_id].local_path) * 1000)
-            # 遍历修改所有子文件夹信息
-            for folder_id, folder in qqFolder.folders.items():
-                folderWalk(qqFolder.folders[folder_id])
-            return qqFolder
-
-        folderWalk(self)
+        self.checkLocalPath()
 
         # 打印最终结果
         # 打印文件树
@@ -614,9 +599,13 @@ class QQGroupFolder:
         localFilesDict: dict[str, QQGroupFile] = {file.file_id: file for file in localFiles}
         tasks = []
         failedFilesPath = set()  # 所有下载错误的路径
-        tempFilesPath = set()
+        tempFilesPath = set()  # 所有临时文件路径
         totalDownloadBytes = 0  # 总下载字节数
-        skipFiles = []
+        skipFilesPath = set()  # 所有跳过文件路径
+        failedDeleteFilesPath = set()  # 所有删除失败文件路径
+        deleteFilesPath = set()  # 所有删除文件路径
+        failedMoveFilesPath = set()  # 所有移动失败文件路径
+        moveFilesPath = set()  # 所有移动失败文件路径
         async with asyncio.Semaphore(concurrentNum):
             timeout = ClientTimeout(connect=connectTimeout, sock_read=downloadTimeout)
             connector = TCPConnector(limit=concurrentNum)
@@ -640,21 +629,57 @@ class QQGroupFolder:
                                     or os.path.getsize(localFile.local_path) != file.file_size:
                                 # 且满足临时文件逻辑
                                 if (file.dead_time != 0 and not ignoreTempFile) or file.dead_time == 0:
-                                    os.remove(path=localFile.local_path)
-                                    task = asyncio.create_task(
-                                        downloadFile(file=file, path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail,
-                                                     attemptCount=attemptCount))
-                                    tasks.append(task)
+                                    try:
+                                        os.remove(path=localFile.local_path)
+                                    except FileNotFoundError | PermissionError | IsADirectoryError | NotADirectoryError | OSError as error:
+                                        match error:
+                                            case FileNotFoundError():
+                                                errorMsg = "文件不存在"
+                                            case PermissionError():
+                                                errorMsg = "没有访问权限"
+                                            case IsADirectoryError():
+                                                errorMsg = "路径为目录"
+                                            case OSError():
+                                                errorMsg = "操作系统异常"
+                                            case NotADirectoryError():
+                                                errorMsg = "路径不是目录"
+                                        logger.opt(colors=True).error(f"<red>删除文件{file.file_name}失败：{errorMsg}</red>")
+                                        failedDeleteFilesPath.add(localFile.local_path)
+                                    else:
+                                        deleteFilesPath.add(localFile.local_path)
+                                        logger.opt(colors=True).debug(f"<blue>重下文件{file.file_name}</blue>")
+                                        task = asyncio.create_task(
+                                            downloadFile(file=file, path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail,
+                                                         attemptCount=attemptCount))
+                                        tasks.append(task)
                                 # 不满足临时文件处理逻辑，进行挂树
                                 else:
                                     # TODO
                                     pass
                             # 文件与服务器文件不一致 最后修改日期也未变，但是地址变动：移动本地文件
                             elif localFile.local_path != file.local_path:
-                                shutil.move(src=localFile.local_path, dst=file.local_path)
+                                try:
+                                    shutil.move(src=localFile.local_path, dst=file.local_path)
+                                except FileNotFoundError | PermissionError | IsADirectoryError | OSError | NotADirectoryError as error:
+                                    match error:
+                                        case FileNotFoundError():
+                                            errorMsg = "文件不存在"
+                                        case PermissionError():
+                                            errorMsg = "没有访问权限"
+                                        case IsADirectoryError():
+                                            errorMsg = "路径为目录"
+                                        case OSError():
+                                            errorMsg = "操作系统异常"
+                                        case NotADirectoryError():
+                                            errorMsg = "路径不是目录"
+                                    logger.opt(colors=True).error(f"<red>移动文件{file.file_name}失败：{errorMsg}</red>")
+                                    failedMoveFilesPath.add(localFile.local_path)
+                                else:
+                                    moveFilesPath.add(f"{localFile.local_path} 移动到 {file.local_path}")
+                                    logger.opt(colors=True).debug(f"<blue>移动文件{file.file_name}</blue>")
                             # 文件未发生变动：不进行操作
                             else:
-                                skipFiles.append(file)
+                                skipFilesPath.add(file)
                         # 文件在本地文件树上存在，在群聊树上也存在，在实际地址上不存在，下载文件
                         else:
                             task = asyncio.create_task(
@@ -664,6 +689,8 @@ class QQGroupFolder:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 3.4 遍历本地文件树，与群聊文件节点进行对比。不存在的节点：挂在群聊文件树上。
+        # TODO
+
         end = time.time_ns()
         # 4 记录log，保存结果
         logDir = os.path.join(self.local_path, ".log", date)
@@ -683,12 +710,38 @@ class QQGroupFolder:
             failedFilesPathStr = "\n".join(
                 [os.path.relpath(path, dirPath).replace("\\", "/") for path in failedFilesPath]
             ) if failedFilesPath else "无下载错误文件"
-            msg = f"群文件下载完成，总文件数{len(files)}，总下载文件数{len(files) - len(failedFilesPath) - len(tempFilesPath) - len(skipFiles)}，" \
-                  f"下载错误数{len(failedFilesPath)}，跳过临时文件数{len(tempFilesPath)}，跳过已下载文件数{len(skipFiles)}。" \
+            msg = f"群文件下载完成，总文件数{len(files)}，总下载文件数{len(files) - len(failedFilesPath) - len(tempFilesPath) - len(skipFilesPath) - len(moveFilesPath)}，" \
+                  f"下载错误数{len(failedFilesPath)}，跳过临时文件数{len(tempFilesPath)}，跳过已下载文件数{len(skipFilesPath) +len(moveFilesPath) }。" \
                   f"总下载大小{printSizeInfo(totalDownloadBytes)}，用时{printTimeInfo(end - start, 3)}。\n" \
                   f"下载错误文件列表：\n" \
                   f"{failedFilesPathStr}"
             resultLogFile.write(msg)
+
+            # 打印移动失败列表
+            resultLogFile.write("\n\n移动失败文件列表：\n")
+            for path in failedMoveFilesPath:
+                resultLogFile.write(path + "\n")
+            # 打印移动文件列表
+            resultLogFile.write("\n移动文件列表：\n")
+            for path in moveFilesPath:
+                resultLogFile.write(path + "\n")
+            # 打印删除失败列表
+            resultLogFile.write("\n删除失败文件列表：\n")
+            for path in failedDeleteFilesPath:
+                resultLogFile.write(path + "\n")
+            # 打印删除文件列表
+            resultLogFile.write("\n删除文件列表：\n")
+            for path in deleteFilesPath:
+                resultLogFile.write(path + "\n")
+
+        # 5 检查文件树，删除不存在的结点
+        self.checkLocalPath()
+        # 打印文件树
+        log_path = os.path.join(self.local_path, ".config")
+        DirExist(log_path)
+        log_path = os.path.join(log_path, "config.json")
+        with open(file=log_path, mode="w", encoding="utf-8") as f:
+            f.write(self.dumps())
         return msg
 
 
