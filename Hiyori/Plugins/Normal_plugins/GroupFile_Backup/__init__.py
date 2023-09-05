@@ -19,9 +19,9 @@ from Hiyori.Utils.API.QQ.GroupFile import QQGroupFolder
 from Hiyori.Plugins.Basic_plugins.MultiBot_Support import getBot
 
 __plugin_meta__ = PluginMetadata(
-    name="群文件备份",  # 用于在菜单显示 用于插件开关
-    description="群文件备份，将群文件备份到指定目录下\n",
-    usage="群文件备份 【可选参数】\n"
+    name="群文件同步备份",  # 用于在菜单显示 用于插件开关
+    description="群文件备份，将群文件同步备份到指定目录下\n",
+    usage="群文件同步 【可选参数】\n"
           "参数列表：\n"
           "-p=200 指定并发数\n"
           "-r=20 下载失败重试次数\n"
@@ -39,13 +39,13 @@ __plugin_meta__ = PluginMetadata(
            }
 )
 
-concurrentDownload = on_regex(r"^群文件备份", permission=HIYORI_OWNER, priority=Priority.普通优先级)
+concurrentSync = on_regex(r"^群文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
 
 
-@concurrentDownload.handle()
+@concurrentSync.handle()
 async def _(bot: Bot, event: GroupMessageEvent):
     msg = event.message.extract_plain_text()
-    msg = re.sub(pattern=r"^群文件备份", repl="", string=msg).strip(" ").split(" ")
+    msg = re.sub(pattern=r"^群文件同步", repl="", string=msg).strip(" ").split(" ")
     if len(msg) == 1 and msg[0] == "":
         msg = []
     argparser = argparse.ArgumentParser()
@@ -75,20 +75,20 @@ async def _(bot: Bot, event: GroupMessageEvent):
     originModeStr = f"按群目录格式存储，" if args.origin else "按用户名/群目录格式存储，"
     ignoreTempFileStr = f"不下载临时文件" if ignoreTempFile else "下载临时文件"
     if not quiet:
-        await concurrentDownload.send(f"群文件备份开始  {concurrentNumStr}{attemptCountStr}{waitAfterFailStr}{connectTimeoutStr}{downloadTimeoutStr}"
-                                      f"{originModeStr}{ignoreTempFileStr}")
+        await concurrentSync.send(f"群文件备份开始  {concurrentNumStr}{attemptCountStr}{waitAfterFailStr}{connectTimeoutStr}{downloadTimeoutStr}"
+                                  f"{originModeStr}{ignoreTempFileStr}")
 
     GroupID = event.group_id
     groupFolder = QQGroupFolder(group_id=GroupID, folder_id=None, folder_name=f"{GroupID}",
                                 create_time=0, creator=0, creator_name="", total_file_count=0,
                                 local_path="")
     await groupFolder.updateInfoFromQQ(getBot(GroupID))
-    msg = await groupFolder.SyncFromGroup(dirPath=f"Data/GroupFile_Backup", bot=bot, concurrentNum=concurrentNum,
+    msg = await groupFolder.syncFromGroup(dirPath=f"Data/GroupFile_Backup", bot=bot, concurrentNum=concurrentNum,
                                           ignoreTempFile=ignoreTempFile, attemptCount=attemptCount, waitAfterFail=waitAfterFail,
                                           connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=originMode)
     try:
         if not quiet:
-            await concurrentDownload.send(msg)
+            await concurrentSync.send(msg)
     except Exception:
         if not quiet:
-            await concurrentDownload.send("下载已完成，报错信息较多，请在log中自行查看")
+            await concurrentSync.send("下载已完成，报错信息较多，请在log中自行查看")

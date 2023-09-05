@@ -782,10 +782,11 @@ class QQGroupFolder:
 
         return msg
 
-    async def SyncFromGroup(self, dirPath: str, bot: Bot, concurrentNum: int = 20, ignoreTempFile: bool = False, attemptCount: int | None = None,
+    async def syncFromGroup(self, *, dirPath: str, bot: Bot, concurrentNum: int = 20, ignoreTempFile: bool = False, attemptCount: int | None = None,
                             waitAfterFail: int | float | None = None, connectTimeout: float | None = 2, downloadTimeout: float | None = 5,
                             mode: str = "ByName") -> str:
         """
+        **该函数仅限使用位置参数进行函数调用，避免将来可能的改动**\n
         从群文件夹将文件同步到本地。\n
         此为单向同步功能，方向为将群文件同步到本地。\n
         concurrentNum = 1等效于阻塞下载，因此不再实现\n
@@ -947,8 +948,7 @@ class QQGroupFolder:
                                     failedMoveFilesPath.add(localFile.local_path)
                                 else:
                                     # 复制本地树的属性
-                                    file.local_path = localFile.local_path
-                                    file.local_modify_time = os.stat(localFile.local_path).st_mtime_ns
+                                    file.local_modify_time = os.stat(file.local_path).st_mtime_ns
                                     file.local_file_id = localFile.local_file_id
                                     moveFilesPath.add(f"{localFile.local_path} 移动到 {file.local_path}")
                                     logger.opt(colors=True).debug(f"<blue>移动文件{file.file_name}</blue>")
