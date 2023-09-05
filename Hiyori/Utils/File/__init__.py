@@ -68,15 +68,6 @@ def JsonFileExist(Path: str, initContent: dict | str | list = None, indent: int 
         return False
 
 
-def getFileID(path: str):
-    """获取文件ID"""
-
-    if not os.path.exists(path):
-        raise FileNotFoundError()
-    else:
-        return os.stat(path).st_ino
-
-
 def getFileInfo(path: str):
     """获取文件全部信息"""
 

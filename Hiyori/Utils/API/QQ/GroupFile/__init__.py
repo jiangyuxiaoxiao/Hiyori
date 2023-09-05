@@ -340,6 +340,8 @@ class QQGroupFolder:
         files += self.local_files
         for folder in self.folders.values():
             files += folder.getAllFiles()
+        for folder in self.local_folders:
+            files += folder.getAllFiles()
         return files
 
     # 递归获取文件夹中所有文件夹，包括自身，包括local_folder
@@ -402,16 +404,62 @@ class QQGroupFolder:
             self.files.pop(file.file_id)
             return True
 
-    # 根据本地路径的实际情况，删除路径不存在的节点
+    # 根据本地路径的实际情况，删除路径不存在的节点，更改路径变动的节点
     def checkLocalPath(self):
-        deleteID = []
-        for file_id, file in self.files.items():
-            if not os.path.isfile(file.local_path):
-                deleteID.append(file_id)
-        for file_id in deleteID:
-            self.files.pop(file_id)
-        for folder in self.folders.values():
-            folder.checkLocalPath()
+        deleteFiles = []
+        localDict = getFilesID(self.local_path)
+        files = self.getAllFiles()
+        for file in files:
+            # 删除无local_id节点
+            if file.local_file_id == 0:
+                deleteFiles.append(file)
+            if file.local_file_id != 0:
+                # 删除local_id节点无本地映射的节点
+                if file.local_file_id not in localDict.keys():
+                    deleteFiles.append(file)
+                else:
+                    # 更新本地信息
+                    file.local_path = localDict[file.local_file_id]
+                    file.local_modify_time = os.stat(file.local_path).st_mtime_ns
+        for file in deleteFiles:
+            result = self.delete(file)
+            logger.opt(colors=True).debug(f"<blue>删除文件节点{file.file_name}，操作{'成功' if result else '失败'}</blue>")
+
+    # 删除节点
+    def delete(self, node: QQGroupFolder | QQGroupFile) -> bool:
+        """将对应的节点移除，仅允许移除同树节点。成功返回True，失败返回False"""
+        if not isinstance(node, (QQGroupFolder, QQGroupFile)):
+            return False
+        nodeRoot = node.parentFolder
+        if nodeRoot is None:
+            return False
+        while nodeRoot.parentFolder is not None:
+            nodeRoot = nodeRoot.parentFolder
+        if self.parentFolder is not None:
+            selfRoot = self.parentFolder
+            while selfRoot.parentFolder is not None:
+                selfRoot = selfRoot.parentFolder
+        else:
+            selfRoot = self
+        if selfRoot != nodeRoot:
+            return False
+
+        parent = node.parentFolder
+        if isinstance(node, QQGroupFolder):
+            if node in parent.local_folders:
+                parent.local_folders.remove(node)
+                return True
+            if node.folder_id in parent.folders.keys():
+                parent.folders.pop(node.folder_id)
+                return True
+        if isinstance(node, QQGroupFile):
+            if node in parent.local_files:
+                parent.local_files.remove(node)
+                return True
+            if node.file_id in parent.files.keys():
+                parent.files.pop(node.file_id)
+                return True
+        return False
 
     # 根据localPath在文件树中搜索并创建新文件夹节点
     def createFolderByLocalPath(self, localPath: str, initFlag: bool = True) -> (int, QQGroupFolder):
@@ -713,7 +761,7 @@ class QQGroupFolder:
             with open(configPath, mode="r", encoding="utf-8") as f:
                 data = f.read()
             data = json.loads(data)
-            localGroupFile = QQGroupFolder.from_dict(data)
+            localGroupFolder = QQGroupFolder.from_dict(data)
         except Exception:
             result = await self.download(dirPath=dirPath, bot=bot, concurrentNum=concurrentNum, ignoreTempFile=ignoreTempFile, attemptCount=attemptCount,
                                          waitAfterFail=waitAfterFail, connectTimeout=connectTimeout, downloadTimeout=downloadTimeout)
@@ -722,17 +770,18 @@ class QQGroupFolder:
         # 3.1 根据mode生成当前群聊文件树的本地路径
         if mode == "Origin":
             dirPath = os.path.join(dirPath, "不区分用户名").replace("\\", "/")
-            files = self.calculateLocalPaths(dirPath)
+            self.calculateLocalPaths(dirPath)
         else:
             dirPath = os.path.join(dirPath, "区分用户名").replace("\\", "/")
-            files = self.calculateLocalPathsByName(dirPath)
-        # 3.2 遍历本地文件树，删除已变动节点
-        localGroupFile.checkLocalPath()
+            self.calculateLocalPathsByName(dirPath)
+        files = self.getAllFiles()
+        # 3.2 遍历本地文件树，追踪更改已变动节点
+        localGroupFolder.checkLocalPath()
         # 3.3 遍历群聊文件树，与本地文件节点进行对比。不存在的节点：下载，位置变动的节点：移动本地位置
-        localFiles = localGroupFile.getAllFiles()
+        localFiles = localGroupFolder.getAllFiles()
         localFilesDict: dict[str, QQGroupFile] = {file.file_id: file for file in localFiles if file.file_id != ""}  # 不包含无file_id的节点，即所有local_file
         files_local_id = {file.local_file_id for file in files if file.local_file_id != 0}
-        files_id = {file.file_id for file in files if file.local_file_id != 0}
+        files_id = {file.file_id for file in files if file.file_id != 0}
         # filesDict: dict[str, QQGroupFile] = {file.local_file_id: file for file in files if file.local_file_id != 0}  # 不包含无local_file_id的节点
         tasks = []
         failedFilesPath = set()  # 所有下载错误的路径
@@ -749,9 +798,9 @@ class QQGroupFolder:
             async with ClientSession(timeout=timeout, connector=connector) as session:
                 # 对于群聊文件树的所有文件
                 for file in files:
-                    # 文件在本地文件树不存在
+                    # 文件在本地文件树不存在：此处是不比较local_file的，因为local_file在QQ上不存在，比较没有任何意义。
                     if file.file_id not in localFilesDict.keys():
-                        # 且满足临时文件逻辑：下载文件
+                        # 不是临时文件，或者是临时文件，但是下载模式下载临时文件：下载文件
                         if (file.dead_time != 0 and not ignoreTempFile) or file.dead_time == 0:
                             task = asyncio.create_task(
                                 file.download(path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount))
@@ -764,13 +813,14 @@ class QQGroupFolder:
                         localFile = localFilesDict[file.file_id]
                         # 文件在实际地址上存在
                         if os.path.isfile(localFile.local_path):
-                            # 文件的服务器最后修改时间发生变动 或 文件与服务器文件不一致：删除本地文件，下载群聊文件
+                            # 文件的服务器最后修改时间发生变动 或 文件与服务器文件不一致
                             if localFile.modify_time != file.modify_time \
                                     or os.path.getsize(localFile.local_path) != file.file_size:
-                                # 且满足临时文件逻辑
+                                # 不是临时文件，或者是临时文件，但是下载模式下载临时文件：删除本地文件，下载群聊文件
                                 if (file.dead_time != 0 and not ignoreTempFile) or file.dead_time == 0:
                                     try:
                                         os.remove(path=localFile.local_path)
+                                    # 删除失败，因此抛出异常：此时取消文件的下载。
                                     except FileNotFoundError | PermissionError | IsADirectoryError | NotADirectoryError | OSError as error:
                                         match error:
                                             case FileNotFoundError():
@@ -783,6 +833,9 @@ class QQGroupFolder:
                                                 errorMsg = "操作系统异常"
                                             case NotADirectoryError():
                                                 errorMsg = "路径不是目录"
+                                        # 回写本地文件信息
+                                        file.local_file_id = localFile.local_file_id
+                                        file.local_modify_time = os.stat(file.local_path).st_mtime_ns
                                         logger.opt(colors=True).error(f"<red>删除文件{file.file_name}失败：{errorMsg}</red>")
                                         failedDeleteFilesPath.add(localFile.local_path)
                                     else:
@@ -792,11 +845,14 @@ class QQGroupFolder:
                                             file.download(path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail,
                                                           attemptCount=attemptCount))
                                         tasks.append(task)
-                                # 不满足临时文件处理逻辑，不进行下载，但是进行挂树：将节点挂在实际路径下
+                                # 是临时文件，不进行下载，但是进行挂树：将节点挂在实际路径下
                                 else:
                                     result = self.moveFileToDir(file, localFile.local_path)
                                     if not result:
                                         failedMoveFilesPath.add(result)
+                                    file.local_path = localFile.local_path
+                                    file.local_file_id = localFile.local_file_id
+                                    file.local_modify_time = localFile.local_modify_time
                             # 文件与服务器文件不一致 最后修改日期也未变，但是地址变动：移动本地文件
                             elif localFile.local_path != file.local_path:
                                 try:
@@ -819,12 +875,14 @@ class QQGroupFolder:
                                 else:
                                     # 复制本地树的属性
                                     file.local_path = localFile.local_path
-                                    file.local_modify_time = os.stat(localFile.local_path).st_mtime
-                                    file.local_file_id = localFile.local_modify_time
+                                    file.local_modify_time = os.stat(localFile.local_path).st_mtime_ns
+                                    file.local_file_id = localFile.local_file_id
                                     moveFilesPath.add(f"{localFile.local_path} 移动到 {file.local_path}")
                                     logger.opt(colors=True).debug(f"<blue>移动文件{file.file_name}</blue>")
-                            # 文件未发生变动：不进行操作
+                            # 文件未发生变动：将本地文件信息更新到群聊文件树
                             else:
+                                file.local_file_id = localFile.local_file_id
+                                file.local_modify_time = localFile.local_modify_time
                                 skipFilesPath.add(file)
                         # 文件在实际地址上不存在：下载文件
                         else:
@@ -885,7 +943,7 @@ class QQGroupFolder:
             for path in deleteFilesPath:
                 resultLogFile.write(path + "\n")
 
-        # 5 检查文件树，删除不存在的结点
+        # 5 检查文件树，追踪更改已变动节点
         self.checkLocalPath()
         # 打印文件树
         log_path = os.path.join(self.local_path, ".config")
@@ -914,3 +972,25 @@ def printSizeInfo(size: int) -> str:
     else:
         size = str(round(size / (1024 ** 4), 3)) + "TB"
     return str(size)
+
+
+def getFileID(path: str):
+    """获取文件ID"""
+
+    if not os.path.exists(path):
+        raise FileNotFoundError()
+    else:
+        return os.stat(path).st_ino
+
+
+def getFilesID(path: str) -> dict[int, str]:
+    """递归提取路径下所有文件的id-路径字典，不包括文件夹，若路径不存在则返回空字典"""
+    totalResult = {}
+    if os.path.isfile(path):
+        totalResult[os.stat(path).st_ino] = os.path.normpath(path).replace("\\", "/").strip("/")
+        return totalResult
+    if os.path.isdir(path):
+        files = os.listdir(path)
+        for file in files:
+            totalResult.update(getFilesID(os.path.join(path, file)))
+    return totalResult
