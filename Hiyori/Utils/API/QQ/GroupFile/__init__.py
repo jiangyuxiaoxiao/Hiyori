@@ -163,12 +163,85 @@ class QQGroupFile:
             self.local_modify_time = stat.st_mtime_ns
             return self
 
+    async def upload(self, bot: Bot, uploaderID: int = 0, oldFolder: QQGroupFolder = None):
+        """
+        调用go-cq的api进行文件上传：文件的上传将不使用并发，避免封号。当文件的文件夹不存在时：将不进行上传。因此，若需上传文件至群聊中不存在的文件夹，应该新建文件夹。
+
+        :param bot: cqbot
+        :param uploaderID: 当提供了uploaderID将更精确地找到对应文件
+        :param oldFolder: 提供上传前的群文件夹数据，便于比对
+        :return:
+        """
+        if oldFolder is None:
+            oldFolder = QQGroupFolder(group_id=self.group_id, folder_id=None, folder_name=f"{self.group_id}",
+                                      create_time=0, creator=0, creator_name="", total_file_count=0,
+                                      local_path="")
+            await oldFolder.updateInfoFromQQ(bot)
+        oldFiles = oldFolder.getAllFiles()
+        oldFilesID = [file.file_id for file in oldFiles]
+        try:
+            folder = self.parentFolder
+            if folder is None:
+                raise FileUploadException(self, "文件不存在文件夹")
+            if folder.folder_id is None:
+                # 上传至根文件夹
+                await bot.upload_group_file(group_id=self.group_id, file=self.local_path, name=self.file_name)
+            else:
+                await bot.upload_group_file(group_id=self.group_id, file=self.local_path, name=self.file_name, folder=folder.folder_id)
+        except Exception as e:
+            if isinstance(e, FileUploadException):
+                raise e
+            else:
+                raise FileUploadException(self, "文件上传失败")
+        else:
+            logger.opt(colors=True).success(f"<green>成功上传文件{self.file_name}</green>")
+            if folder.folder_id is None:
+                folderData = await bot.get_group_root_files(group_id=self.group_id)
+            else:
+                folderData = await bot.get_group_files_by_folder(group_id=self.group_id, folder_id=folder.folder_id)
+            # 反序列化
+            folder = QQGroupFolder.from_dict(folderData)
+            sameNameFiles: list[QQGroupFile] = []
+            for file in folder.files.values():
+                # 跳过不同上传者
+                if uploaderID != 0:
+                    if uploaderID != file.uploader:
+                        continue
+                # 跳过旧文件id
+                if file.file_id in oldFilesID:
+                    continue
+                sameNameFiles.append(file)
+            if len(sameNameFiles) == 0:
+                raise FileUploadException(self, "群文件夹中未找到上传文件")
+            sameNameFiles = sorted(sameNameFiles, key=lambda file: file.upload_time, reverse=True)
+            file = sameNameFiles[0]  # 取最近一个上传的文件为准
+            # 更新文件信息
+            self.group_id = file.group_id
+            self.file_id = file.file_id
+            self.file_name = file.file_name
+            self.busid = file.busid
+            self.file_size = file.file_size
+            self.upload_time = file.upload_time
+            self.dead_time = file.dead_time
+            self.modify_time = file.modify_time
+            self.download_times = file.download_times
+            self.uploader = file.uploader
+            self.uploader_name = file.uploader_name
+
 
 class FileDownloadException(Exception):
     """文件下载异常类"""
 
     def __init__(self, file: QQGroupFile):
         self.file = file
+
+
+class FileUploadException(Exception):
+    """文件上传异常类"""
+
+    def __init__(self, file: QQGroupFile, reason: str = ""):
+        self.file = file
+        self.reason = reason
 
 
 class QQGroupFolder:
