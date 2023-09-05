@@ -33,7 +33,7 @@ class QQGroupFile:
                  local_file_id: int = 0):
         """
         :param group_id:群号
-        :param file_id:文件ID
+        :param file_id:文件ID 传入""时视为本地文件
         :param file_name:文件名
         :param busid:文件类型
         :param file_size:文件大小
@@ -95,6 +95,19 @@ class QQGroupFile:
         if "local_file_id" in data.keys():
             thisFile.local_file_id = data["local_file_id"]
         return thisFile
+
+    @classmethod
+    def createFromLocalFile(cls, group_id: int, path: str) -> QQGroupFile:
+        if not os.path.isfile(path):
+            raise FileNotFoundError(f"路径{path}没有找到本地文件或该路径为目录")
+        file_name = os.path.basename(path)
+        file_size = os.stat(path).st_size
+        local_modify_time = os.stat(path).st_mtime_ns
+        local_file_id = os.stat(path).st_ino
+        local_path = os.path.normpath(path).replace("\\", "/").strip("/")
+        file = cls(group_id=group_id, file_id="", file_name=file_name, busid=0, file_size=file_size, upload_time=0, dead_time=0, modify_time=0,
+                   download_times=0, uploader=0, uploader_name="", local_path=local_path, local_modify_time=local_modify_time, local_file_id=local_file_id)
+        return file
 
     def dumps(self) -> str:
         """序列化为json字符串"""
@@ -345,7 +358,7 @@ class QQGroupFolder:
             "depth": self.depth,
             "files": {fid: f.to_dict() for fid, f in self.files.items()},
             "folders": {fid: f.to_dict() for fid, f in self.folders.items()},
-            "local_files": self.local_files,
+            "local_files": [file.to_dict() for file in self.local_files],
             "local_folders": [folder.to_dict() for folder in self.local_folders]
         }
 
@@ -448,7 +461,7 @@ class QQGroupFolder:
     # 移动file节点到指定文件夹路径
     def moveFileToDir(self, file: QQGroupFile, dirPath: str) -> bool:
         """
-        移动file节点到指定文件夹路径，只移动节点不移动本地文件
+        移动file节点到指定文件夹路径，只移动节点不移动本地文件。dirPath请传入目录路径！
 
         :param file: 需要移动的文件
         :param dirPath: 移动到指定路径
@@ -477,10 +490,10 @@ class QQGroupFolder:
             self.files.pop(file.file_id)
             return True
 
-    # 根据本地路径的实际情况，删除路径不存在的节点，更改路径变动的节点
+    # 根据本地路径的实际情况，删除路径不存在的节点，更改路径变动的节点，添加本地未记录节点
     def checkLocalPath(self):
         deleteFiles = []
-        localDict = getFilesID(self.local_path)
+        localDict = getLocalFilesID(self.local_path, ignoreFolders={".config", ".log"})
         files = self.getAllFiles()
         for file in files:
             # 删除无local_id节点
@@ -497,6 +510,14 @@ class QQGroupFolder:
         for file in deleteFiles:
             result = self.delete(file)
             logger.opt(colors=True).debug(f"<blue>删除文件节点{file.file_name}，操作{'成功' if result else '失败'}</blue>")
+        # 查找本地未记录节点
+        files = self.getAllFiles()
+        local_ids = {file.local_file_id for file in files}
+        for local_id in localDict.keys():
+            if local_id not in local_ids:
+                newFile = QQGroupFile.createFromLocalFile(group_id=self.group_id, path=localDict[local_id])
+                self.add(newFile)
+                self.moveFileToDir(file=newFile, dirPath=os.path.dirname(newFile.local_path.strip("/")))
 
     # 删除节点
     def delete(self, node: QQGroupFolder | QQGroupFile) -> bool:
@@ -617,7 +638,7 @@ class QQGroupFolder:
 
         return files
 
-    # 遍历文件夹，计算所有文件夹的本地下载路径，文件路径结构为群名/人名/群文件，返回收集到的所有文件列表
+    # 遍历文件夹，计算所有文件夹的本地下载路径，文件路径结构为群号/人名/群文件，返回收集到的所有文件列表
     def calculateLocalPathsByName(self, dir_path: str) -> list[QQGroupFile]:
         """
         遍历文件夹，计算所有文件夹的本地下载路径，文件路径结构为群名/人名/群文件，返回收集到的所有文件列表
@@ -786,7 +807,7 @@ class QQGroupFolder:
                             waitAfterFail: int | float | None = None, connectTimeout: float | None = 2, downloadTimeout: float | None = 5,
                             mode: str = "ByName") -> str:
         """
-        **该函数仅限使用位置参数进行函数调用，避免将来可能的改动**\n
+        **该函数仅限使用位置参数进行函数调用，避免将来可能的改动造成破坏性影响**\n
         从群文件夹将文件同步到本地。\n
         此为单向同步功能，方向为将群文件同步到本地。\n
         concurrentNum = 1等效于阻塞下载，因此不再实现\n
@@ -921,7 +942,7 @@ class QQGroupFolder:
                                         tasks.append(task)
                                 # 是临时文件，不进行下载，但是进行挂树：将节点挂在实际路径下
                                 else:
-                                    result = self.moveFileToDir(file, localFile.local_path)
+                                    result = self.moveFileToDir(file, os.path.dirname(localFile.local_path.strip("/")))
                                     if not result:
                                         failedMoveFilesPath.add(result)
                                     file.local_path = localFile.local_path
@@ -971,10 +992,18 @@ class QQGroupFolder:
             # 不存在的节点：挂树
             if (file.local_file_id not in files_local_id) and (file.file_id not in files_id):
                 self.add(file)
-                self.moveFileToDir(file=file, dirPath=file.local_path)
+                self.moveFileToDir(file=file, dirPath=os.path.dirname(file.local_path.strip("/")))
+        # 3.5 检查文件树，追踪更改已变动节点
+        self.checkLocalPath()
+        # 3.6 打印保存文件树
+        log_path = os.path.join(self.local_path, ".config")
+        DirExist(log_path)
+        log_path = os.path.join(log_path, "config.json")
+        with open(file=log_path, mode="w", encoding="utf-8") as f:
+            f.write(self.dumps())
 
-        end = time.time_ns()
         # 4 记录log，保存结果
+        end = time.time_ns()
         logDir = os.path.join(self.local_path, ".log", date)
         DirExist(logDir)
         errorLogPath = os.path.join(logDir, f"error.log")
@@ -1016,15 +1045,27 @@ class QQGroupFolder:
             for path in deleteFilesPath:
                 resultLogFile.write(path + "\n")
 
-        # 5 检查文件树，追踪更改已变动节点
-        self.checkLocalPath()
-        # 打印文件树
-        log_path = os.path.join(self.local_path, ".config")
-        DirExist(log_path)
-        log_path = os.path.join(log_path, "config.json")
-        with open(file=log_path, mode="w", encoding="utf-8") as f:
-            f.write(self.dumps())
         return msg
+
+    async def syncToGroup(self, *, bot: Bot, waitTime: float):
+        """
+        **该函数仅限使用位置参数进行函数调用，避免将来可能的改动造成破坏性影响**\n
+        从本地将文件上传至群聊。\n
+        在调用此函数时，self应为从config.json反序列化的本地文件夹
+
+        :param bot cqBot
+        :param waitTime 文件上传等待间隔，单位秒
+        """
+
+        # 群文件夹
+        groupFolder = QQGroupFolder(group_id=self.group_id, folder_id=None, folder_name=f"{self.group_id}",
+                                    create_time=0, creator=0, creator_name="", total_file_count=0,
+                                    local_path="")
+        await groupFolder.updateInfoFromQQ(bot)  # 从QQ拉取当前群聊的消息
+        # 本地文件夹检查
+        self.checkLocalPath()
+
+        # 比对，并上传
 
 
 # 工具函数
@@ -1056,8 +1097,15 @@ def getFileID(path: str):
         return os.stat(path).st_ino
 
 
-def getFilesID(path: str) -> dict[int, str]:
-    """递归提取路径下所有文件的id-路径字典，不包括文件夹，若路径不存在则返回空字典"""
+def getLocalFilesID(path: str, ignoreFolders: set[str] = None) -> dict[int, str]:
+    """
+    递归提取路径下所有文件的id-路径字典，不包括文件夹，若路径不存在则返回空字典
+
+    :param path 待提取路径
+    :param ignoreFolders 无视该路径下的文件夹名
+    """
+    if ignoreFolders is None:
+        ignoreFolders = set()
     totalResult = {}
     if os.path.isfile(path):
         totalResult[os.stat(path).st_ino] = os.path.normpath(path).replace("\\", "/").strip("/")
@@ -1065,5 +1113,7 @@ def getFilesID(path: str) -> dict[int, str]:
     if os.path.isdir(path):
         files = os.listdir(path)
         for file in files:
-            totalResult.update(getFilesID(os.path.join(path, file)))
+            if file in ignoreFolders and os.path.isdir(os.path.join(path, file)):
+                continue
+            totalResult.update(getLocalFilesID(os.path.join(path, file)))
     return totalResult
