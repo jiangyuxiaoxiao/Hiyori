@@ -44,6 +44,7 @@
         + 多Bot在同一群聊时不重复处理事件，自动选择指定Bot进行事件处理
         + 多Bot在同一群聊时，处理Bot下线后自动切换到备用Bot
     + 多API对接封装：百度网盘、百度翻译、华为云DNS
+    + 群文件同步备份
 + 有趣的互动插件：
     + 群友购买
     + 自定义商店
@@ -140,3 +141,31 @@ python3 hiyori.py
 + 更多物品
 + 更多互动事件
 + 添加单元测试
+
+## 致谢
+
+妃爱在开发过程中使用了如下项目，感谢这些开发者与项目对妃爱的贡献：
+
++ [nonebot/nonebot2](https://github.com/nonebot/nonebot2)
++ [Mrs4s/go-cqhttp](https://github.com/Mrs4s/go-cqhttp)
++ [nonebot/adapter-onebot](https://github.com/nonebot/adapter-onebot)
++ [fuqiuluo/unidbg-fetch-qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign)
++ [nonebot/plugin-apscheduler](https://github.com/nonebot/plugin-apscheduler)
++ [he0119/nonebot-plugin-datastore](https://github.com/he0119/nonebot-plugin-datastore)
++ [kexue-z/nonebot-plugin-htmlrender](https://github.com/kexue-z/nonebot-plugin-htmlrender)
++ [noneplugin/nonebot-plugin-imageutils](https://github.com/noneplugin/nonebot-plugin-imageutils)
++ [nonebot/plugin-localstore](https://github.com/nonebot/plugin-localstore)
++ [MountainDash/nonebot-plugin-send-anything-anywhere](https://github.com/MountainDash/nonebot-plugin-send-anything-anywhere)
++ [mengshouer/nonebot_plugin_analysis_bilibili](https://github.com/mengshouer/nonebot_plugin_analysis_bilibili)
++ [Melodyknit/nonebot_plugin_animeres](https://github.com/Melodyknit/nonebot_plugin_animeres)
++ [KafCoppelia/nonebot_plugin_fortune](https://github.com/KafCoppelia/nonebot_plugin_fortune)
++ [mnixry/nonebot-plugin-guild-patch](https://github.com/mnixry/nonebot-plugin-guild-patch)
++ [noneplugin/nonebot-plugin-memes](https://github.com/noneplugin/nonebot-plugin-memes)
++ [lgc-NB2Dev/nonebot-plugin-picmcstat](https://github.com/lgc-NB2Dev/nonebot-plugin-picmcstat)
++ [lgc-NB2Dev/nonebot-plugin-picstatus](https://github.com/lgc-NB2Dev/nonebot-plugin-picstatus)
++ [noneplugin/nonebot-plugin-remake](https://github.com/noneplugin/nonebot-plugin-remake)
++ [MinatoAquaCrews/nonebot_plugin_tarot](https://github.com/MinatoAquaCrews/nonebot_plugin_tarot)
++ [glamorgan9826/nonebot-plugin-today-waifu](https://github.com/glamorgan9826/nonebot-plugin-today-waifu)
++ [SEAFHMC/nonebot-plugin-who-at-me](https://github.com/SEAFHMC/nonebot-plugin-who-at-me)
++ [Kaguyaya/nonebot_plugin_ygo_trade](https://github.com/Kaguyaya/nonebot_plugin_ygo_trade)
+
