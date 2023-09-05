@@ -10,7 +10,6 @@ import json
 import sys
 import time
 import os
-import shutil
 from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.plugin import _plugins

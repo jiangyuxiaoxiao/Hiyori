@@ -55,6 +55,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
     argparser.add_argument("-d", "--dtimeout", type=float, default=None)
     argparser.add_argument("-t", "--tempfile", action="store_true")
     argparser.add_argument("-o", "--origin", action="store_true")
+    argparser.add_argument("-q", "--quiet", action="store_true")
     args = argparser.parse_args(msg)
     concurrentNum = args.p
     attemptCount = args.retry
@@ -62,6 +63,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
     connectTimeout = args.ctimeout
     downloadTimeout = args.dtimeout
     ignoreTempFile = not args.tempfile
+    quiet = args.quiet
     originMode = "Origin" if args.origin else "ByName"
 
     concurrentNumStr = f"设置并发数{concurrentNum}，"
@@ -71,9 +73,9 @@ async def _(bot: Bot, event: GroupMessageEvent):
     downloadTimeoutStr = f"设置下载超时{downloadTimeout}s，" if downloadTimeout else ""
     originModeStr = f"按群目录格式存储，" if args.origin else "按用户名/群目录格式存储，"
     ignoreTempFileStr = f"不下载临时文件" if ignoreTempFile else "下载临时文件"
-
-    await concurrentDownload.send(f"群文件备份开始  {concurrentNumStr}{attemptCountStr}{waitAfterFailStr}{connectTimeoutStr}{downloadTimeoutStr}"
-                                  f"{originModeStr}{ignoreTempFileStr}")
+    if not quiet:
+        await concurrentDownload.send(f"群文件备份开始  {concurrentNumStr}{attemptCountStr}{waitAfterFailStr}{connectTimeoutStr}{downloadTimeoutStr}"
+                                      f"{originModeStr}{ignoreTempFileStr}")
 
     GroupID = event.group_id
     groupFolder = QQGroupFolder(group_id=GroupID, folder_id=None, folder_name=f"{GroupID}",
@@ -84,6 +86,8 @@ async def _(bot: Bot, event: GroupMessageEvent):
                                           ignoreTempFile=ignoreTempFile, attemptCount=attemptCount, waitAfterFail=waitAfterFail,
                                           connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=originMode)
     try:
-        await concurrentDownload.send(msg)
+        if not quiet:
+            await concurrentDownload.send(msg)
     except Exception:
-        await concurrentDownload.send("下载已完成，报错信息较多，请在log中自行查看")
+        if not quiet:
+            await concurrentDownload.send("下载已完成，报错信息较多，请在log中自行查看")

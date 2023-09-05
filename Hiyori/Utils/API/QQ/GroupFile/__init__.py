@@ -5,6 +5,7 @@
 @Desc: QQ群组文件相关封装
 @Ver : 1.0.0
 """
+from __future__ import annotations
 import asyncio
 import json
 import os
@@ -28,7 +29,8 @@ class QQGroupFile:
     """QQ文件类"""
 
     def __init__(self, group_id: int, file_id: str, file_name: str, busid: int, file_size: int, upload_time: int, dead_time: int,
-                 modify_time: int, download_times: int, uploader: int, uploader_name: str, local_path: str = "", local_modify_time: int = 0):
+                 modify_time: int, download_times: int, uploader: int, uploader_name: str, local_path: str = "", local_modify_time: int = 0,
+                 local_file_id: int = 0):
         """
         :param group_id:群号
         :param file_id:文件ID
@@ -43,6 +45,7 @@ class QQGroupFile:
         :param uploader_name:上传者名字
         :param local_path:本地保存绝对路径
         :param local_modify_time:本地最后修改时间，13位时间戳
+        :param local_file_id:本地文件ID
         """
         self.group_id: int = group_id
         self.file_id: str = file_id
@@ -57,6 +60,9 @@ class QQGroupFile:
         self.uploader_name: str = uploader_name
         self.local_path: str = local_path
         self.local_modify_time: int = local_modify_time
+        self.local_file_id: int = local_file_id
+        # 不存储数据
+        self.parentFolder: QQGroupFolder | None = None  # 用于指向父节点
 
     def to_dict(self) -> dict[str, any]:
         """转换为字典格式"""
@@ -73,7 +79,8 @@ class QQGroupFile:
             "uploader": self.uploader,
             "uploader_name": self.uploader_name,
             "local_path": self.local_path,
-            "local_modify_time": self.local_modify_time
+            "local_modify_time": self.local_modify_time,
+            "local_file_id": self.local_file_id
         }
 
     @classmethod
@@ -85,6 +92,8 @@ class QQGroupFile:
             thisFile.local_path = data["local_path"]
         if "local_modify_time" in data.keys():
             thisFile.local_modify_time = data["local_modify_time"]
+        if "local_file_id" in data.keys():
+            thisFile.local_file_id = data["local_file_id"]
         return thisFile
 
     def dumps(self) -> str:
@@ -97,9 +106,9 @@ class QQGroupFile:
         data = json.loads(jsonStr)
         return cls.from_dict(data)
 
-    async def download(self, path: str, bot: Bot, attemptCount: int | None = 20, waitAfterFail: int | float | None = 5, session: ClientSession = None):
+    async def _download(self, path: str, bot: Bot, attemptCount: int | None = 20, waitAfterFail: int | float | None = 5, session: ClientSession = None):
         """
-        将群文件下载到本地文件夹，最多尝试二次。
+        将群文件下载到本地文件夹，内部封装
         :param bot: bot
         :param path: 本地路径
         :param attemptCount: 下载失败尝试次数
@@ -112,7 +121,7 @@ class QQGroupFile:
             waitAfterFail = 5
 
         @retry(stop=stop_after_attempt(attemptCount), wait=wait_fixed(waitAfterFail))
-        async def _download(self: QQGroupFile, path: str, bot: Bot, session: ClientSession = None):
+        async def innerDownload(self: QQGroupFile, path: str, bot: Bot, session: ClientSession = None):
             url = await bot.get_group_file_url(group_id=self.group_id, file_id=self.file_id, busid=self.busid)
             url = url["url"]
             logger.opt(colors=True).debug(f"<yellow>开始请求文件{self.file_name}</yellow>")
@@ -132,7 +141,27 @@ class QQGroupFile:
                         async for chunk in response.content.iter_chunked(20 * 1024 * 1024):
                             await file.write(chunk)
 
-        await _download(self, path, bot, session)
+        await innerDownload(self, path, bot, session)
+
+    async def download(self, path: str, bot: Bot, session: ClientSession = None, attemptCount: int | None = None,
+                       waitAfterFail: int | float | None = None):
+        """
+        文件下载封装，记录下载异常信息，将下载异常的文件传入异常进行处理\n
+        由于异步并发的原因，因此无法直接try..catch来处理异常。通过将其包裹到一个新异常中，从而传入文件信息以待后续处理。\n
+        + 当下载失败时：抛出FileDownloadException异常
+        + 当下载成功时：写入文件的最后修改时间、文件本地ID
+        """
+        try:
+            await self._download(path=path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount)
+        except Exception:
+            logger.opt(colors=True).error(f"<red>文件{self.file_name}下载失败</red>")
+            raise FileDownloadException(self)
+        else:
+            logger.opt(colors=True).success(f"<green>成功下载文件{self.file_name}</green>")
+            stat = os.stat(path)
+            self.local_file_id = stat.st_ino
+            self.local_modify_time = stat.st_mtime_ns
+            return self
 
 
 class FileDownloadException(Exception):
@@ -140,22 +169,6 @@ class FileDownloadException(Exception):
 
     def __init__(self, file: QQGroupFile):
         self.file = file
-
-
-async def downloadFile(file: QQGroupFile, path: str, bot: Bot, session: ClientSession = None, attemptCount: int | None = None,
-                       waitAfterFail: int | float | None = None) -> QQGroupFile:
-    """
-    文件下载封装，记录下载异常信息，将下载异常的文件传入异常进行处理\n
-    由于异步并发的原因，因此无法直接try..catch来处理异常。通过将其包裹到一个新异常中，从而传入文件信息以待后续处理。\n
-    """
-    try:
-        await file.download(path=path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount)
-    except Exception:
-        logger.opt(colors=True).error(f"<red>文件{file.file_name}下载失败</red>")
-        raise FileDownloadException(file)
-    else:
-        logger.opt(colors=True).success(f"<green>成功下载文件{file.file_name}</green>")
-        return file
 
 
 class QQGroupFolder:
@@ -182,17 +195,67 @@ class QQGroupFolder:
         self.creator_name: str = creator_name
         self.total_file_count: int = total_file_count
         self.local_path: str = local_path
+        self.depth: int = 0
         self.files: dict[str, QQGroupFile] = dict()
         self.folders: dict[str, QQGroupFolder] = dict()
+        self.local_files: list[QQGroupFile] = list()  # 用于存储尚未上传至群的所有本地文件
+        self.local_folders: list[QQGroupFolder] = list()  # 用于存储尚未上传至群的所有本地文件夹
+        # 不存储数据
+        self.parentFolder: QQGroupFolder | None = None  # 用于指向父节点
+
+    def _updateDepth(self):
+        for folder in self.folders.values():
+            folder.depth = self.depth + 1
+            folder._updateDepth()
+        for local_folder in self.local_folders:
+            local_folder.depth = self.depth + 1
+            local_folder._updateDepth()
 
     def __add__(self, other):
         """向文件夹中添加子文件或子文件夹"""
+
         if isinstance(other, QQGroupFile):
-            self.files[other.file_id] = other
+            # id不存在视为临时本地文件
+            if other.file_id == "":
+                other.parentFolder = self
+                self.local_files.append(other)
+            else:
+                other.parentFolder = self
+                self.files[other.file_id] = other
         elif isinstance(other, QQGroupFolder):
-            self.folders[other.folder_id] = other
+            if other.folder_id == "":
+                other.parentFolder = self
+                self.local_folders.append(other)
+            else:
+                other.parentFolder = self
+                self.folders[other.folder_id] = other
+            # 更新深度
+            self._updateDepth()
         else:
             raise TypeError("不能将QQGroupFolder与QQGroupFile或QQGroupFolder以外的类型相加")
+        return self
+
+    def add(self, node):
+        """向文件夹中添加子文件或子文件夹"""
+        if isinstance(node, QQGroupFile):
+            # id不存在视为临时本地文件
+            if node.file_id == "":
+                node.parentFolder = self
+                self.local_files.append(node)
+            else:
+                node.parentFolder = self
+                self.files[node.file_id] = node
+        elif isinstance(node, QQGroupFolder):
+            if node.folder_id == "":
+                node.parentFolder = self
+                self.local_folders.append(node)
+            else:
+                node.parentFolder = self
+                self.folders[node.folder_id] = node
+            # 更新深度
+            self._updateDepth()
+        else:
+            raise TypeError("不能将QQGroupFolder与QQGroupFile或QQGroupFolder以外的类型加入QQGroupFile")
         return self
 
     def to_dict(self) -> dict[str, any]:
@@ -206,8 +269,11 @@ class QQGroupFolder:
             "creator_name": self.creator_name,
             "total_file_count": self.total_file_count,
             "local_path": self.local_path,
+            "depth": self.depth,
             "files": {fid: f.to_dict() for fid, f in self.files.items()},
-            "folders": {fid: f.to_dict() for fid, f in self.folders.items()}
+            "folders": {fid: f.to_dict() for fid, f in self.folders.items()},
+            "local_files": self.local_files,
+            "local_folders": [folder.to_dict() for folder in self.local_folders]
         }
 
     @classmethod
@@ -218,11 +284,19 @@ class QQGroupFolder:
             thisFolder.local_path = data["local_path"]
         if "files" in data.keys():
             for file in data["files"].values():
-                newFile = QQGroupFile.from_dict(file)
-                thisFolder = thisFolder + newFile
+                thisFolder = thisFolder + QQGroupFile.from_dict(file)
+        if "local_files" in data.keys():
+            for local_file in data["local_files"]:
+                thisFolder = thisFolder + QQGroupFile.from_dict(local_file)
         if "folders" in data.keys():
             for folder in data["folders"].values():
                 thisFolder = thisFolder + QQGroupFolder.from_dict(folder)
+        if "local_folders" in data.keys():
+            for local_folder in data["local_folders"]:
+                thisFolder = thisFolder + QQGroupFolder.from_dict(local_folder)
+        if "depth" in data.keys():
+            thisFolder.depth = data["depth"]
+
         return thisFolder
 
     def dumps(self) -> str:
@@ -249,33 +323,35 @@ class QQGroupFolder:
         if info["files"] is not None:
             for file in info["files"]:
                 file = QQGroupFile.from_dict(file)
-                self.files[file.file_id] = file
+                self.add(file)
         # 添加子文件夹信息
         if info["folders"] is not None:
             for folder in info["folders"]:
                 folder = QQGroupFolder.from_dict(folder)
+                self.add(folder)
                 # 递归添加子文件夹信息
                 await folder.updateInfoFromQQ(bot)
-                self.folders[folder.folder_id] = folder
 
-    # 递归获取文件夹中所有文件
+    # 递归获取文件夹中所有文件，包括local_file
     def getAllFiles(self) -> list[QQGroupFile]:
-        """递归获取文件夹中所有文件"""
+        """递归获取文件夹中所有文件，包括local_file"""
         files: list[QQGroupFile] = []
         files += [f for f in self.files.values()]
+        files += self.local_files
         for folder in self.folders.values():
             files += folder.getAllFiles()
         return files
 
-    # 递归获取文件夹中所有文件夹，包括自身
+    # 递归获取文件夹中所有文件夹，包括自身，包括local_folder
     def getAllFolders(self) -> list:
-        """递归获取文件夹中所有文件夹，包括自身"""
+        """递归获取文件夹中所有文件夹，包括自身，包括local_folder"""
         folders: list = [self]
+        folders += self.local_folders
         folders += [folder.getAllFolders() for folder in self.folders.values()]
         return folders
 
     # 根据本地路径获取对应文件夹，不区分用户名模式
-    def getFolderByLocalPath(self, localPath: str):
+    def getFolderByLocalPath(self, localPath: str) -> QQGroupFolder | None:
         """
         根据本地路径获取对应文件夹
         :param localPath: 待搜索本地路径
@@ -288,7 +364,43 @@ class QQGroupFolder:
             result = folder.getFolderByLocalPath(localPath)
             if result is not None:
                 return result
+        for folder in self.local_folders:
+            result = folder.getFolderByLocalPath(localPath)
+            if result is not None:
+                return result
         return None
+
+    # 移动file节点到指定文件夹路径
+    def moveFileToDir(self, file: QQGroupFile, dirPath: str) -> bool:
+        """
+        移动file节点到指定文件夹路径，只移动节点不移动本地文件
+
+        :param file: 需要移动的文件
+        :param dirPath: 移动到指定路径
+        :return: False：移动失败 True：移动成功
+        """
+        if file not in self.local_files and file not in self.files.values():
+            return False
+        # 找到目标文件夹
+        result, folder = self.createFolderByLocalPath(dirPath)
+        if result == -1:
+            return False
+        # 检查文件夹是否已有对应文件
+        for f in folder.files.values():
+            if file.file_id == f.file_id:
+                return False
+        for f in folder.local_files:
+            if file.file_id == f.file_id:
+                return False
+        # 挂树
+        folder.add(file)
+        # 从原文件夹中移除
+        if file in self.local_files:
+            self.local_files.remove(file)
+            return True
+        if file.file_id in self.files.keys():
+            self.files.pop(file.file_id)
+            return True
 
     # 根据本地路径的实际情况，删除路径不存在的节点
     def checkLocalPath(self):
@@ -298,64 +410,88 @@ class QQGroupFolder:
                 deleteID.append(file_id)
         for file_id in deleteID:
             self.files.pop(file_id)
-        for folder_id, folder in self.folders.items():
+        for folder in self.folders.values():
             folder.checkLocalPath()
 
-    # 根据本地路径创建新文件夹，不区分用户名模式
-    # TODO
-    def createFolderByLocalPath(self, localPath: str, bot: Bot) -> int:
+    # 根据localPath在文件树中搜索并创建新文件夹节点
+    def createFolderByLocalPath(self, localPath: str, initFlag: bool = True) -> (int, QQGroupFolder):
         """
-        根据本地路径创建新文件夹
+        根据本地路径创建新文件夹节点：仅在文件树上创建文件夹节点，而不在文件系统中创建实际的文件夹。\n
+        注意：文件夹的localPath并不与实际路径完全对应。在-o模式下是对应的，但是在默认的模式下是不包含上传者用户名的，而实际路径包含。\n
 
-        :param bot: cqbot
-        :param localPath: 待搜索本地路径
-        :return: 创建成功返回1，文件夹已存在返回0，未创建成功返回-1
+        :param localPath: 待创建文件夹路径
+        :param initFlag: 初始化标志，避免无限递归。在外部使用时使用默认值即可，无需考虑该参数。
+        :return: 创建成功返回(1,创建文件夹)，文件夹节点已存在返回(0,文件夹)，未创建成功返回(-1,None)
         """
+        # 找到根节点后再根据根节点创建
+        if self.parentFolder is not None and initFlag:
+            rootFolder = self.parentFolder
+            while rootFolder.parentFolder is not None:
+                rootFolder = rootFolder.parentFolder
+            return rootFolder.createFolderByLocalPath(localPath, False)
         # 由于文件夹路径格式统一，因此若不满足包含关系则localPath对应的路径肯定不在对应文件夹里
         if not localPath.startswith(self.local_path):
-            return -1
+            return -1, None
         else:
             if localPath == self.local_path:
-                return 0  # 文件夹已存在
+                return 0, self  # 文件夹已存在
             relPath = os.path.relpath(localPath, self.local_path).replace("\\", "/")
+            # 文件夹为该节点的子节点
             if "/" not in relPath:
                 # 说明localPath是self的子节点
                 for folder in self.folders.values():
                     if folder.local_path == localPath:
-                        return 0
+                        return 0, folder
+                for folder in self.local_folders:
+                    if folder.local_path == localPath:
+                        return 0, folder
                 # 说明文件夹节点不存在，准备创建
-                # TODO 创建
-                # newFolder = QQGroupFolder(group_id=self.group_id, folder_id="", folder_name=relPath, create_time=-1, creator=)
+                newFolder = QQGroupFolder(group_id=self.group_id, folder_id="", folder_name=relPath, create_time=-1, creator=-1, creator_name="",
+                                          total_file_count=0, local_path=localPath)
+                self.add(newFolder)
+                return 1, newFolder
+            # 仍非子节点，继续寻找
             else:
+                # 尝试在群文件夹中创建
                 for folder in self.folders.values():
-                    result = folder.createFolderByLocalPath(localPath, bot)
+                    result, f = folder.createFolderByLocalPath(localPath, False)
                     if result == 0 or result == 1:
-                        return result
-                return -1
+                        return result, f
+                # 尝试在本地文件夹中创建
+                for folder in self.local_folders:
+                    result, f = folder.createFolderByLocalPath(localPath, False)
+                    if result == 0 or result == 1:
+                        return result, f
+                # 路径不存在，说明需要递归创建子文件夹
+                relPaths = relPath.strip("/").split("/")
+                newFolder = QQGroupFolder(group_id=self.group_id, folder_id="", folder_name=relPaths[0], create_time=-1, creator=-1, creator_name="",
+                                          total_file_count=0, local_path=localPath)
+                self.add(newFolder)
+                return newFolder.createFolderByLocalPath(localPath, False)
 
     # 遍历文件夹，计算所有文件夹的本地下载路径，返回收集到的所有文件列表
     def calculateLocalPaths(self, dir_path: str) -> list[QQGroupFile]:
-        """遍历文件夹，计算所有文件夹的本地下载路径，返回收集到的所有文件列表"""
+        """遍历文件夹，计算所有文件夹的本地下载路径，返回收集到的所有文件列表。"""
         files: list[QQGroupFile] = []
         # 修改自身信息
         self.local_path = os.path.join(dir_path, self.folder_name).replace("\\", "/")
         DirExist(self.local_path)
         # 遍历修改所有子文件信息
         fileNames = set()
-        for file_id in self.files.keys():
-            filePath = os.path.join(self.local_path, self.files[file_id].file_name)
+        for file in self.files.values():
+            filePath = os.path.join(self.local_path, file.file_name)
             count = 1
             while filePath in fileNames:
                 # 文件名冲突，尝试重命名
-                filePath = os.path.join(self.local_path, self.files[file_id].file_name)
+                filePath = os.path.join(self.local_path, file.file_name)
                 filePath = os.path.splitext(filePath)[0] + f"({count})" + os.path.splitext(filePath)[1]
                 count += 1
             fileNames.add(filePath)
-            self.files[file_id].local_path = filePath.replace("\\", "/")
-            files.append(self.files[file_id])
+            file.local_path = filePath.replace("\\", "/")
+            files.append(file)
 
         # 遍历修改所有子文件夹信息
-        for folder_id, folder in self.folders.items():
+        for folder in self.folders.values():
             files += folder.calculateLocalPaths(self.local_path)
 
         return files
@@ -370,45 +506,43 @@ class QQGroupFolder:
         fileNames: dict[str, set[str]] = dict()  # 用于统计重复的文件名
         fileDirs = set()  # 用于统计相同的文件夹
 
-        # self.local_path = os.path.join(dir_path, self.folder_name).replace("\\", "/")
-
         def _updateLocalPathsByName(folder: QQGroupFolder, dir_path: str, basePath: str) -> list[QQGroupFile]:
             """遍历闭包函数"""
             # 修改自身信息
             # 对于文件夹而言，其记录的localPath并非实际的Path，而与updateLocalPaths的路径保持一致
             files: list[QQGroupFile] = []
             folder.local_path = os.path.join(dir_path, folder.folder_name).replace("\\", "/")
-            for file_id in folder.files.keys():
+            for file in folder.files.values():
                 # 修正用户名，避免出现非法字符
                 if os.name == "nt":
-                    folder.files[file_id].uploader_name = re.sub(pattern=r'[\/:*?"<>|]', string=folder.files[file_id].uploader_name, repl="")
-                    if folder.files[file_id].uploader_name == "":
-                        folder.files[file_id].uploader_name = "default"
+                    file.uploader_name = re.sub(pattern=r'[\/:*?"<>|]', string=file.uploader_name, repl="")
+                    if file.uploader_name == "":
+                        file.uploader_name = "default"
                 else:
-                    folder.files[file_id].uploader_name = folder.files[file_id].uploader_name.replace("/", "")
-                    if folder.files[file_id].uploader_name == "":
-                        folder.files[file_id].uploader_name = "default"
+                    file.uploader_name = file.uploader_name.replace("/", "")
+                    if file.uploader_name == "":
+                        file.uploader_name = "default"
                 # 计算文件实际路径目录
                 relPath = os.path.relpath(folder.local_path, basePath)
-                fileDir = os.path.join(basePath, folder.files[file_id].uploader_name, relPath)
+                fileDir = os.path.join(basePath, file.uploader_name, relPath)
                 if fileDir not in fileDirs:
                     DirExist(fileDir)
                     fileDirs.add(fileDir)
                     fileNames[fileDir] = set()
-                filePath = os.path.normpath(os.path.join(fileDir, folder.files[file_id].file_name))
+                filePath = os.path.normpath(os.path.join(fileDir, file.file_name))
                 # 检查文件名是否重复
                 count = 1
                 while filePath in fileNames[fileDir]:
                     # 文件名冲突，尝试重命名
-                    filePath = os.path.normpath(os.path.join(fileDir, folder.files[file_id].file_name))
+                    filePath = os.path.normpath(os.path.join(fileDir, file.file_name))
                     filePath = os.path.splitext(filePath)[0] + f"({count})" + os.path.splitext(filePath)[1]
                     count += 1
                 fileNames[fileDir].add(filePath)
-                folder.files[file_id].local_path = filePath.replace("\\", "/")
-                files.append(folder.files[file_id])
+                file.local_path = filePath.replace("\\", "/")
+                files.append(file)
 
             # 遍历修改所有子文件夹信息
-            for folder_id, _folder in folder.folders.items():
+            for _folder in folder.folders.values():
                 files += _updateLocalPathsByName(_folder, folder.local_path, basePath)
 
             return files
@@ -483,7 +617,7 @@ class QQGroupFolder:
                         tempFilesPath.add(file.local_path)
                         continue
                     task = asyncio.create_task(
-                        downloadFile(file=file, path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount))
+                        file.download(path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount))
                     tasks.append(task)
                 # 等待所有下载任务完成
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -571,7 +705,7 @@ class QQGroupFolder:
             configPath = os.path.join(dirPath, "区分用户名", str(self.group_id), ".config", "config.json")
         if not os.path.isfile(configPath):
             result = await self.download(dirPath=dirPath, bot=bot, concurrentNum=concurrentNum, ignoreTempFile=ignoreTempFile, attemptCount=attemptCount,
-                                         waitAfterFail=waitAfterFail, connectTimeout=connectTimeout, downloadTimeout=downloadTimeout)
+                                         waitAfterFail=waitAfterFail, connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=mode)
             return result
 
         # 2. 尝试读取本地config.json进行同步，若失败则调用download覆盖下载
@@ -596,7 +730,10 @@ class QQGroupFolder:
         localGroupFile.checkLocalPath()
         # 3.3 遍历群聊文件树，与本地文件节点进行对比。不存在的节点：下载，位置变动的节点：移动本地位置
         localFiles = localGroupFile.getAllFiles()
-        localFilesDict: dict[str, QQGroupFile] = {file.file_id: file for file in localFiles}
+        localFilesDict: dict[str, QQGroupFile] = {file.file_id: file for file in localFiles if file.file_id != ""}  # 不包含无file_id的节点，即所有local_file
+        files_local_id = {file.local_file_id for file in files if file.local_file_id != 0}
+        files_id = {file.file_id for file in files if file.local_file_id != 0}
+        # filesDict: dict[str, QQGroupFile] = {file.local_file_id: file for file in files if file.local_file_id != 0}  # 不包含无local_file_id的节点
         tasks = []
         failedFilesPath = set()  # 所有下载错误的路径
         tempFilesPath = set()  # 所有临时文件路径
@@ -610,19 +747,22 @@ class QQGroupFolder:
             timeout = ClientTimeout(connect=connectTimeout, sock_read=downloadTimeout)
             connector = TCPConnector(limit=concurrentNum)
             async with ClientSession(timeout=timeout, connector=connector) as session:
+                # 对于群聊文件树的所有文件
                 for file in files:
-                    # 文件不存在
+                    # 文件在本地文件树不存在
                     if file.file_id not in localFilesDict.keys():
-                        # 且满足临时文件逻辑
+                        # 且满足临时文件逻辑：下载文件
                         if (file.dead_time != 0 and not ignoreTempFile) or file.dead_time == 0:
                             task = asyncio.create_task(
-                                downloadFile(file=file, path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount))
+                                file.download(path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount))
                             tasks.append(task)
+                        # 跳过临时文件
                         else:
                             tempFilesPath.add(file.local_path)
+                    # 文件在本地文件树存在
                     else:
                         localFile = localFilesDict[file.file_id]
-                        # 文件在本地文件树上存在，在群聊树上也存在，在实际地址上也存在
+                        # 文件在实际地址上存在
                         if os.path.isfile(localFile.local_path):
                             # 文件的服务器最后修改时间发生变动 或 文件与服务器文件不一致：删除本地文件，下载群聊文件
                             if localFile.modify_time != file.modify_time \
@@ -649,18 +789,20 @@ class QQGroupFolder:
                                         deleteFilesPath.add(localFile.local_path)
                                         logger.opt(colors=True).debug(f"<blue>重下文件{file.file_name}</blue>")
                                         task = asyncio.create_task(
-                                            downloadFile(file=file, path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail,
-                                                         attemptCount=attemptCount))
+                                            file.download(path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail,
+                                                          attemptCount=attemptCount))
                                         tasks.append(task)
-                                # 不满足临时文件处理逻辑，进行挂树
+                                # 不满足临时文件处理逻辑，不进行下载，但是进行挂树：将节点挂在实际路径下
                                 else:
-                                    # TODO
-                                    pass
+                                    result = self.moveFileToDir(file, localFile.local_path)
+                                    if not result:
+                                        failedMoveFilesPath.add(result)
                             # 文件与服务器文件不一致 最后修改日期也未变，但是地址变动：移动本地文件
                             elif localFile.local_path != file.local_path:
                                 try:
                                     shutil.move(src=localFile.local_path, dst=file.local_path)
                                 except FileNotFoundError | PermissionError | IsADirectoryError | OSError | NotADirectoryError as error:
+                                    # 对于移动失败的文件节点：由于移动失败，因此文件将不存在local_id属性，会在接下来的本地树回挂中挂上
                                     match error:
                                         case FileNotFoundError():
                                             errorMsg = "文件不存在"
@@ -675,21 +817,30 @@ class QQGroupFolder:
                                     logger.opt(colors=True).error(f"<red>移动文件{file.file_name}失败：{errorMsg}</red>")
                                     failedMoveFilesPath.add(localFile.local_path)
                                 else:
+                                    # 复制本地树的属性
+                                    file.local_path = localFile.local_path
+                                    file.local_modify_time = os.stat(localFile.local_path).st_mtime
+                                    file.local_file_id = localFile.local_modify_time
                                     moveFilesPath.add(f"{localFile.local_path} 移动到 {file.local_path}")
                                     logger.opt(colors=True).debug(f"<blue>移动文件{file.file_name}</blue>")
                             # 文件未发生变动：不进行操作
                             else:
                                 skipFilesPath.add(file)
-                        # 文件在本地文件树上存在，在群聊树上也存在，在实际地址上不存在，下载文件
+                        # 文件在实际地址上不存在：下载文件
                         else:
                             task = asyncio.create_task(
-                                downloadFile(file=file, path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount))
+                                file.download(path=file.local_path, bot=bot, session=session, waitAfterFail=waitAfterFail, attemptCount=attemptCount))
                             tasks.append(task)
+
                 # 等待所有下载任务完成
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # 3.4 遍历本地文件树，与群聊文件节点进行对比。不存在的节点：挂在群聊文件树上。
-        # TODO
+        for file in localFiles:
+            # 不存在的节点：挂树
+            if (file.local_file_id not in files_local_id) and (file.file_id not in files_id):
+                self.add(file)
+                self.moveFileToDir(file=file, dirPath=file.local_path)
 
         end = time.time_ns()
         # 4 记录log，保存结果
@@ -711,7 +862,7 @@ class QQGroupFolder:
                 [os.path.relpath(path, dirPath).replace("\\", "/") for path in failedFilesPath]
             ) if failedFilesPath else "无下载错误文件"
             msg = f"群文件下载完成，总文件数{len(files)}，总下载文件数{len(files) - len(failedFilesPath) - len(tempFilesPath) - len(skipFilesPath) - len(moveFilesPath)}，" \
-                  f"下载错误数{len(failedFilesPath)}，跳过临时文件数{len(tempFilesPath)}，跳过已下载文件数{len(skipFilesPath) +len(moveFilesPath) }。" \
+                  f"下载错误数{len(failedFilesPath)}，跳过临时文件数{len(tempFilesPath)}，跳过已下载文件数{len(skipFilesPath) + len(moveFilesPath)}。" \
                   f"总下载大小{printSizeInfo(totalDownloadBytes)}，用时{printTimeInfo(end - start, 3)}。\n" \
                   f"下载错误文件列表：\n" \
                   f"{failedFilesPathStr}"
