@@ -34,7 +34,7 @@ class Baidu:
                 self.refresh_token = refresh_token
                 self.timeout_date = timeout_date
 
-            # 序列化为字典
+            # 序列化为字典Z
             def to_dict(self) -> dict[str, any]:
                 return {
                     "access_host": self.access_host,
@@ -225,20 +225,23 @@ class Baidu:
                                     return 1
                 return -1
 
-        def __init__(self, Translate=AccessToken(), Pan=PanAccessToken()):
+        def __init__(self, Translate=AccessToken(), Pan=PanAccessToken(), OpenTranslate=AccessToken()):
             self.Translate = Translate
             self.Pan = Pan
+            self.OpenTranslate = OpenTranslate
 
         def to_dict(self) -> dict[str, any]:
             return {
                 "Translate": self.Translate.to_dict(),
-                "Pan": self.Pan.to_dict()
+                "Pan": self.Pan.to_dict(),
+                "OpenTranslate": self.OpenTranslate.to_dict()
             }
 
         @classmethod
         def from_dict(cls, data: dict[str, any]):
             return cls(Baidu.Api.AccessToken.from_dict(data["Translate"]),
-                       Baidu.Api.PanAccessToken.from_dict(data["Pan"]))
+                       Baidu.Api.PanAccessToken.from_dict(data["Pan"]),
+                       Baidu.Api.AccessToken.from_dict(data["OpenTranslate"]))
 
     def __init__(self, api=Api()):
         self.Api = api

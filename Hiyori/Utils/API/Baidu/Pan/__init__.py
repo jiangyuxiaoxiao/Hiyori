@@ -5,13 +5,14 @@
 @Desc: 百度网盘云服务
 @Ver : 1.0.0
 """
+import asyncio
+
 from Hiyori.Utils.API.Baidu import baidu
 from nonebot.matcher import Matcher
-from nonebot.adapters.onebot.v11 import Bot
 import aiohttp
-import urllib.parse
 import os
 import aiofiles
+import requests
 
 
 async def getToken(QQ: int, matcher: Matcher) -> int | None:
@@ -345,7 +346,6 @@ async def preUploadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher 
     pass
 
 
-# TODO 等待实现
 async def singleStepUploadFile(QQ: int, localPath: str, panPath: str, ondup: str = "fail", matcher: Matcher = None) -> dict[str, any] | None:
     """
     网盘文件单步上传。若不成功返回None，否则返回分片请求结果。
@@ -379,7 +379,8 @@ async def singleStepUploadFile(QQ: int, localPath: str, panPath: str, ondup: str
     if token is None:
         return None
     # 处理地址
-    url = f"https://pan.baidu.com/rest/2.0/pcs/file"
+    url = f"https://d.pcs.baidu.com/rest/2.0/pcs/file"
+    panPath = os.path.join(panPath, os.path.basename(localPath)).replace("\\", "/")
     params = {"method": "upload", "access_token": token, "path": panPath, "ondup": ondup}
     async with aiohttp.ClientSession() as session:
         async with aiofiles.open(file=localPath, mode="rb") as file:
@@ -393,7 +394,8 @@ async def singleStepUploadFile(QQ: int, localPath: str, panPath: str, ondup: str
                     yield chunk
 
             async with session.post(url=url, data=fileGen(), params=params) as response:
-                return await response.json()
+                content = await response.text()
+                pass
 
 
 async def deleteFile(QQ: int, pathList: str | list[str], matcher: Matcher = None) -> int:
@@ -431,4 +433,5 @@ if __name__ == '__main__':
     # asyncio.run(fileInfo(path="/Gal/ATRI/ATRI-my  dear moments.docx"))
     # asyncio.run(
     # downloadFile(localPath="C:\\Users\\65416\\Desktop\\网盘测试\\danei2.mp4", panPath="/我的资源/达内java2022年/1 FUNDAMENTAL01/06： 数组（下） 、 方法pm.mp4"))
-    print(1)
+    asyncio.run(singleStepUploadFile(QQ=654163754, localPath="E:/Projects/Hiyori/Hiyori/Data/GroupFile_Backup/1.初音真的没有来吗？.txt",
+                                     panPath="/apps/Hiyori", matcher=None))

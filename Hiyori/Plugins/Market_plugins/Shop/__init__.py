@@ -16,9 +16,7 @@ from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import html_to_pic
 from Hiyori.Utils.Message.At import GetAtQQs, clearAt
 from Hiyori.Utils.Database import DB_Item
 from Hiyori.Utils.Priority import Priority
-from Hiyori.Utils.API.QQ import GetQQGrouperName, GetQQStrangerName
 from Hiyori.Utils.Exception.Market import MarketException
-from Hiyori.Utils.Permissions import HIYORI_OWNER
 import re
 
 __plugin_meta__ = PluginMetadata(

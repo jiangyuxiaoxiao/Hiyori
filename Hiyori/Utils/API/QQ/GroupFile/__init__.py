@@ -176,14 +176,15 @@ class QQGroupFile:
             self.local_modify_time = stat.st_mtime_ns
             return self
 
-    async def upload(self, bot: Bot, uploaderID: int = 0, oldFolder: QQGroupFolder = None):
+    async def upload(self, bot: Bot, uploaderID: int = 0, oldFolder: QQGroupFolder = None) -> str:
         """
-        调用go-cq的api进行文件上传：文件的上传将不使用并发，避免封号。当文件的文件夹不存在时：将不进行上传。因此，若需上传文件至群聊中不存在的文件夹，应该新建文件夹。
+        调用go-cq的api进行文件上传：文件的上传将不使用并发，避免封号。\n
+        当文件的文件夹不存在时：将不进行上传。因此，若需上传文件至群聊中不存在的文件夹，应该新建文件夹。\n
 
         :param bot: cqbot
         :param uploaderID: 当提供了uploaderID将更精确地找到对应文件
         :param oldFolder: 提供上传前的群文件夹数据，便于比对
-        :return:
+        :return: 挂载文件夹id
         """
         if oldFolder is None:
             oldFolder = QQGroupFolder(group_id=self.group_id, folder_id=None, folder_name=f"{self.group_id}",
@@ -196,11 +197,12 @@ class QQGroupFile:
             folder = self.parentFolder
             if folder is None:
                 raise FileUploadException(self, "文件不存在文件夹")
+            path = os.path.abspath(self.local_path)
             if folder.folder_id is None:
                 # 上传至根文件夹
-                await bot.upload_group_file(group_id=self.group_id, file=self.local_path, name=self.file_name)
+                await bot.upload_group_file(group_id=self.group_id, file=path, name=self.file_name)
             else:
-                await bot.upload_group_file(group_id=self.group_id, file=self.local_path, name=self.file_name, folder=folder.folder_id)
+                await bot.upload_group_file(group_id=self.group_id, file=path, name=self.file_name, folder=folder.folder_id)
         except Exception as e:
             if isinstance(e, FileUploadException):
                 raise e
@@ -209,13 +211,14 @@ class QQGroupFile:
         else:
             logger.opt(colors=True).success(f"<green>成功上传文件{self.file_name}</green>")
             if folder.folder_id is None:
-                folderData = await bot.get_group_root_files(group_id=self.group_id)
+                filesData = await bot.get_group_root_files(group_id=self.group_id)
             else:
-                folderData = await bot.get_group_files_by_folder(group_id=self.group_id, folder_id=folder.folder_id)
+                filesData = await bot.get_group_files_by_folder(group_id=self.group_id, folder_id=folder.folder_id)
             # 反序列化
-            folder = QQGroupFolder.from_dict(folderData)
+            filesData = filesData["files"]
+            files = [QQGroupFile.from_dict(fileData) for fileData in filesData]
             sameNameFiles: list[QQGroupFile] = []
-            for file in folder.files.values():
+            for file in files:
                 # 跳过不同上传者
                 if uploaderID != 0:
                     if uploaderID != file.uploader:
@@ -240,6 +243,17 @@ class QQGroupFile:
             self.download_times = file.download_times
             self.uploader = file.uploader
             self.uploader_name = file.uploader_name
+            # 移出local_file
+            if self in folder.local_files:
+                folder.local_files.remove(self)
+                folder.files[self.file_id] = self
+            return folder.folder_id
+
+    async def deleteFromGroup(self, bot: Bot):
+        try:
+            await bot.delete_group_file(group_id=self.group_id, file_id=self.file_id, busid=self.busid)
+        except:
+            raise FileDeleteException(self, f"文件{self.file_name}删除失败")
 
 
 class FileDownloadException(Exception):
@@ -251,6 +265,14 @@ class FileDownloadException(Exception):
 
 class FileUploadException(Exception):
     """文件上传异常类"""
+
+    def __init__(self, file: QQGroupFile, reason: str = ""):
+        self.file = file
+        self.reason = reason
+
+
+class FileDeleteException(Exception):
+    """文件删除异常"""
 
     def __init__(self, file: QQGroupFile, reason: str = ""):
         self.file = file
@@ -435,7 +457,9 @@ class QQGroupFolder:
         """递归获取文件夹中所有文件夹，包括自身，包括local_folder"""
         folders: list = [self]
         folders += self.local_folders
-        folders += [folder.getAllFolders() for folder in self.folders.values()]
+        for folder in self.folders.values():
+            folders += folder.getAllFolders()
+
         return folders
 
     # 根据本地路径获取对应文件夹，不区分用户名模式
@@ -461,7 +485,7 @@ class QQGroupFolder:
     # 移动file节点到指定文件夹路径
     def moveFileToDir(self, file: QQGroupFile, dirPath: str) -> bool:
         """
-        移动file节点到指定文件夹路径，只移动节点不移动本地文件。dirPath请传入目录路径！
+        移动self下的file节点到指定文件夹路径，只移动节点不移动本地文件。dirPath请传入目录路径！
 
         :param file: 需要移动的文件
         :param dirPath: 移动到指定路径
@@ -478,17 +502,47 @@ class QQGroupFolder:
             if file.file_id == f.file_id:
                 return False
         for f in folder.local_files:
-            if file.file_id == f.file_id:
+            if file.local_file_id == f.local_file_id:
                 return False
-        # 挂树
-        folder.add(file)
-        # 从原文件夹中移除
+
+        # 从原文件夹中移除并挂树
         if file in self.local_files:
             self.local_files.remove(file)
+            folder.add(file)
+            return True
+        elif file.file_id in self.files.keys():
+            self.files.pop(file.file_id)
+            folder.add(file)
+            return True
+
+        return False
+
+    # 将file挂载到指定id的目录
+    def moveFileToDirByFolderID(self, file: QQGroupFile, folderID: str) -> bool:
+        """将文件移动到指定id的文件夹"""
+        if self.parentFolder is not None:
+            rootFolder = self.parentFolder
+        else:
+            rootFolder = self
+        while rootFolder.parentFolder is not None:
+            rootFolder = rootFolder.parentFolder
+        folders = rootFolder.getAllFolders()
+        foldersDict = {folder.folder_id: folder for folder in folders}
+        if folderID not in foldersDict.keys():
+            return False
+
+        folder = foldersDict[folderID]
+
+        # 从原文件夹中移除并挂树
+        if file in self.local_files:
+            self.local_files.remove(file)
+            folder.add(file)
             return True
         if file.file_id in self.files.keys():
             self.files.pop(file.file_id)
+            folder.add(file)
             return True
+        return False
 
     # 根据本地路径的实际情况，删除路径不存在的节点，更改路径变动的节点，添加本地未记录节点
     def checkLocalPath(self):
@@ -560,6 +614,7 @@ class QQGroupFolder:
         """
         根据本地路径创建新文件夹节点：仅在文件树上创建文件夹节点，而不在文件系统中创建实际的文件夹。\n
         注意：文件夹的localPath并不与实际路径完全对应。在-o模式下是对应的，但是在默认的模式下是不包含上传者用户名的，而实际路径包含。\n
+        注意：因此，在默认模式下，应预处理路径。\n
 
         :param localPath: 待创建文件夹路径
         :param initFlag: 初始化标志，避免无限递归。在外部使用时使用默认值即可，无需考虑该参数。
@@ -987,7 +1042,7 @@ class QQGroupFolder:
                 # 等待所有下载任务完成
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # 3.4 遍历本地文件树，与群聊文件节点进行对比。不存在的节点：挂在群聊文件树上。
+        # 3.4 遍历本地文件树，与群聊文件节点进行对比。不存在的节点：回挂在群聊文件树上。
         for file in localFiles:
             # 不存在的节点：挂树
             if (file.local_file_id not in files_local_id) and (file.file_id not in files_id):
@@ -1051,12 +1106,12 @@ class QQGroupFolder:
         """
         **该函数仅限使用位置参数进行函数调用，避免将来可能的改动造成破坏性影响**\n
         从本地将文件上传至群聊。\n
-        在调用此函数时，self应为从config.json反序列化的本地文件夹
+        在调用此函数时，self应为从config.json反序列化的本地文件夹\n
+        在区分用户名模式下，无法直观地建立本地文件夹到群聊文件夹的映射，因此，区分用户名模式不支持上传同步，或者会造成期待以外的结果。
 
         :param bot cqBot
         :param waitTime 文件上传等待间隔，单位秒
         """
-
         # 群文件夹
         groupFolder = QQGroupFolder(group_id=self.group_id, folder_id=None, folder_name=f"{self.group_id}",
                                     create_time=0, creator=0, creator_name="", total_file_count=0,
@@ -1064,8 +1119,74 @@ class QQGroupFolder:
         await groupFolder.updateInfoFromQQ(bot)  # 从QQ拉取当前群聊的消息
         # 本地文件夹检查
         self.checkLocalPath()
-
         # 比对，并上传
+        files = self.getAllFiles()
+        groupFiles = groupFolder.getAllFiles()
+        groupFilesID = {file.file_id for file in groupFiles}
+        fileUploadExceptions = []
+        fileRefreshExceptions = []
+        uploadFiles = []
+        updateFiles = []
+        for file in files:
+            # 不在id记录中的文件，进行上传
+            if file.file_id not in groupFilesID:
+                try:
+                    await file.upload(bot=bot, uploaderID=int(bot.self_id), oldFolder=groupFolder)
+                    await asyncio.sleep(waitTime)
+                except FileUploadException as e:
+                    fileUploadExceptions.append(e)
+                else:
+                    uploadFiles.append(file)
+            # 最后修改日期变动的文件，进行先上传后删除
+            if file.local_modify_time != os.stat(file.local_path).st_mtime_ns:
+                try:
+                    old_file_id = file.file_id
+                    old_busid = file.busid
+                    await file.upload(bot=bot, uploaderID=int(bot.self_id), oldFolder=groupFolder)
+                    await asyncio.sleep(waitTime)
+                except FileUploadException as e:
+                    fileRefreshExceptions.append(e)
+                else:
+                    self.add(file)
+                    try:
+                        await bot.delete_group_file(group_id=self.group_id, file_id=old_file_id, busid=old_busid)
+                    except FileDeleteException as e:
+                        fileRefreshExceptions.append(e)
+                    else:
+                        updateFiles.append(file)
+        # 打印配置
+        configPath = os.path.join(self.local_path, ".config", "config.json")
+        with open(file=configPath, mode="w", encoding="utf-8") as f:
+            f.write(self.dumps())
+        # 打印日志
+        uploadFailsMsg = "\n上传失败文件：\n"
+        uploadFailsMsg = uploadFailsMsg + "\n".join([os.path.relpath(path, self.local_path).replace("\\", "/") for path in
+                                                     [e.file.local_path for e in fileUploadExceptions]]) if fileUploadExceptions else ""
+        updateFailsMsg = "\n更新失败文件：\n"
+        updateFailsMsg = updateFailsMsg + "\n".join([os.path.relpath(path, self.local_path).replace("\\", "/") for path in
+                                                     [e.file.local_path for e in fileRefreshExceptions]]) if fileRefreshExceptions else ""
+        uploadFilesMsg = "\n".join([os.path.relpath(path, self.local_path).replace("\\", "/") for path in
+                                    [file.local_path for file in uploadFiles]])
+        updateFilesMsg = "\n".join([os.path.relpath(path, self.local_path).replace("\\", "/") for path in
+                                    [file.local_path for file in updateFiles]])
+        date = datetime.datetime.now().strftime("上传同步——%Y年%m月%d日 %H时%M分%S秒")
+        logDir = os.path.join(self.local_path, ".log", date)
+        DirExist(logDir)
+        resultLogPath = os.path.join(logDir, f"result.log")
+        errorLogPath = os.path.join(logDir, f"error.log")
+        msg = f"上传同步完成，上传文件{len(uploadFiles)}个，更新文件{len(updateFiles)}个，上传失败{len(fileUploadExceptions)}个，更新失败{len(fileRefreshExceptions)}个。"
+        msg += f"\n上传文件列表：\n{uploadFilesMsg}" if uploadFilesMsg else ""
+        msg += f"\n更新文件列表：\n{updateFilesMsg}" if updateFilesMsg else ""
+        msg += f"{uploadFailsMsg}{updateFailsMsg}"
+
+        with open(file=resultLogPath, mode="a", encoding="utf-8") as resultLogFile:
+            resultLogFile.write(msg)
+        with open(file=errorLogPath, mode="a", encoding="utf-8") as errorLogFile:
+            for error in fileUploadExceptions:
+                traceback.print_exception(type(error), error, error.__traceback__, file=errorLogFile)
+            for error in fileRefreshExceptions:
+                traceback.print_exception(type(error), error, error.__traceback__, file=errorLogFile)
+        return msg
 
 
 # 工具函数

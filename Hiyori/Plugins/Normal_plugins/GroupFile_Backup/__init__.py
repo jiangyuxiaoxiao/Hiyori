@@ -5,9 +5,10 @@
 @Desc: 群文件备份插件，测试中
 @Ver : 1.0.0
 """
-
+import json
 import re
 import argparse
+import os
 
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Bot
 from nonebot import on_regex
@@ -40,6 +41,7 @@ __plugin_meta__ = PluginMetadata(
 )
 
 concurrentSync = on_regex(r"^群文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
+uploadSync = on_regex(r"^本地文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
 
 
 @concurrentSync.handle()
@@ -55,7 +57,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
     argparser.add_argument("-c", "--ctimeout", type=float, default=None)
     argparser.add_argument("-d", "--dtimeout", type=float, default=None)
     argparser.add_argument("-t", "--tempfile", action="store_true")
-    argparser.add_argument("-o", "--origin", action="store_true")
+    argparser.add_argument("-n", "--name", action="store_true")
     argparser.add_argument("-q", "--quiet", action="store_true")
     args = argparser.parse_args(msg)
     concurrentNum = args.p
@@ -65,14 +67,14 @@ async def _(bot: Bot, event: GroupMessageEvent):
     downloadTimeout = args.dtimeout
     ignoreTempFile = not args.tempfile
     quiet = args.quiet
-    originMode = "Origin" if args.origin else "ByName"
+    nameMode = "ByName" if args.name else "Origin"
 
     concurrentNumStr = f"设置并发数{concurrentNum}，"
     attemptCountStr = f"设置重试次数{attemptCount}，" if attemptCount else ""
     waitAfterFailStr = f"设置重试等待时间{waitAfterFail}s，" if waitAfterFail else ""
     connectTimeoutStr = f"设置连接超时{connectTimeout}s，" if connectTimeout else ""
     downloadTimeoutStr = f"设置下载超时{downloadTimeout}s，" if downloadTimeout else ""
-    originModeStr = f"按群目录格式存储，" if args.origin else "按用户名/群目录格式存储，"
+    originModeStr = f"按群目录格式存储，" if not args.name else "按用户名/群目录格式存储，"
     ignoreTempFileStr = f"不下载临时文件" if ignoreTempFile else "下载临时文件"
     if not quiet:
         await concurrentSync.send(f"群文件备份开始  {concurrentNumStr}{attemptCountStr}{waitAfterFailStr}{connectTimeoutStr}{downloadTimeoutStr}"
@@ -85,10 +87,39 @@ async def _(bot: Bot, event: GroupMessageEvent):
     await groupFolder.updateInfoFromQQ(getBot(GroupID))
     msg = await groupFolder.syncFromGroup(dirPath=f"Data/GroupFile_Backup", bot=bot, concurrentNum=concurrentNum,
                                           ignoreTempFile=ignoreTempFile, attemptCount=attemptCount, waitAfterFail=waitAfterFail,
-                                          connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=originMode)
+                                          connectTimeout=connectTimeout, downloadTimeout=downloadTimeout, mode=nameMode)
     try:
         if not quiet:
             await concurrentSync.send(msg)
     except Exception:
         if not quiet:
             await concurrentSync.send("下载已完成，报错信息较多，请在log中自行查看")
+
+
+@uploadSync.handle()
+async def _(bot: Bot, event: GroupMessageEvent):
+    msg = event.message.extract_plain_text()
+    msg = re.sub(pattern=r"^本地文件同步", repl="", string=msg).strip(" ").split(" ")
+    if len(msg) == 1 and msg[0] == "":
+        msg = []
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("-q", "--quiet", action="store_true")
+    argparser.add_argument("-w", "--wait", type=float, default=0)
+    args = argparser.parse_args(msg)
+    quiet = args.quiet
+    wait = args.wait
+    if not quiet:
+        await uploadSync.send(f"即将将本地文件同步上传至群文件，每次上传间隔{wait}秒")
+    GroupID = event.group_id
+    configPath = f"Data/GroupFile_Backup/不区分用户名/{GroupID}/.config/config.json"
+    if not os.path.isfile(configPath):
+        await uploadSync.send("配置文件不存在，或者本地文件不存在。注意：仅可同步上传按群文件目录格式的群文件夹")
+    try:
+        with open(configPath, mode="r", encoding="utf-8") as file:
+            content = file.read()
+            groupFolder = QQGroupFolder.from_dict(json.loads(content))
+    except Exception:
+        await uploadSync.send("配置解析失败")
+    msg = await groupFolder.syncToGroup(bot=bot, waitTime=wait)
+    if not quiet:
+        await uploadSync.send(msg)
