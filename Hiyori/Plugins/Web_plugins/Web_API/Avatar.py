@@ -22,7 +22,6 @@ DirExist("Data/Avatar/QQUser")
 
 @app.get("/Plugins/Web_plugins/Web_API/Avatar", response_class=JSONResponse)
 async def _(QQ: int = 0, Group: int = 0, Size: int = 640):
-
     if Group == 0 and QQ != 0:
 
         pass

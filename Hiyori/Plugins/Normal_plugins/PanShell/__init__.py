@@ -87,19 +87,20 @@ async def _(matcher: Matcher, bot: Bot, event: MessageEvent):
         newDir = newDir.replace("\\", "/")
     # 模糊查询新文件夹信息
     newDirInfo = await baiduPan.fileInfo(QQ=QQ, matcher=matcher, path=newDir, ignoreFile=True, fuzzy_matching=True)
-    if newDirInfo is None:
+    if newDirInfo is None and newDir != "/":  # 根目录特殊处理
         msg = MessageSegment.at(event.user_id) + "目录不存在"
         await cd.send(msg)
         return
     else:
-        if newDir.endswith("/"):
-            newDir = newDir.rstrip("/")
-        newDirName: str = newDirInfo["filename"]
-        newDir = os.path.join(os.path.dirname(newDir), newDirName)
-        # 文件名标准化，必须为'/'，不能包含'\'，且路径必须以'/'结尾
-        newDir = newDir.replace("\\", "/")
-        if not newDir.endswith("/"):
-            newDir += "/"
+        if newDir != "/":
+            if newDir.endswith("/"):
+                newDir = newDir.rstrip("/")
+            newDirName: str = newDirInfo["filename"]
+            newDir = os.path.join(os.path.dirname(newDir), newDirName)
+            # 文件名标准化，必须为'/'，不能包含'\'，且路径必须以'/'结尾
+            newDir = newDir.replace("\\", "/")
+            if not newDir.endswith("/"):
+                newDir += "/"
         infos = await baiduPan.listDir(QQ=QQ, path=newDir, matcher=matcher)
         if infos is None:
             msg = MessageSegment.at(event.user_id) + "目录不存在"

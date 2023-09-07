@@ -10,7 +10,9 @@ import re
 import argparse
 import os
 
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, Bot
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, Bot, MessageSegment
+from nonebot.matcher import Matcher
+from nonebot.log import logger
 from nonebot import on_regex
 from nonebot.plugin import PluginMetadata
 
@@ -18,6 +20,7 @@ from Hiyori.Utils.Permissions import HIYORI_OWNER
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.API.QQ.GroupFile import QQGroupFolder
 from Hiyori.Plugins.Basic_plugins.MultiBot_Support import getBot
+import Hiyori.Utils.API.Baidu.Pan as baiduPan
 
 __plugin_meta__ = PluginMetadata(
     name="群文件同步备份",  # 用于在菜单显示 用于插件开关
@@ -42,6 +45,7 @@ __plugin_meta__ = PluginMetadata(
 
 concurrentSync = on_regex(r"^群文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
 uploadSync = on_regex(r"^本地文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
+panBackUp = on_regex(r"^群文件百度网盘备份", priority=Priority.普通优先级)
 
 
 @concurrentSync.handle()
@@ -123,3 +127,38 @@ async def _(bot: Bot, event: GroupMessageEvent):
     msg = await groupFolder.syncToGroup(bot=bot, waitTime=wait)
     if not quiet:
         await uploadSync.send(msg)
+
+
+@panBackUp.handle()
+async def _(bot: Bot, event: GroupMessageEvent, matcher: Matcher):
+    GroupID = event.group_id
+    groupFolder = QQGroupFolder(group_id=GroupID, folder_id=None, folder_name=f"{GroupID}",
+                                create_time=0, creator=0, creator_name="", total_file_count=0,
+                                local_path="")
+    await panBackUp.send("正在将文件同步到本地...")
+    await groupFolder.updateInfoFromQQ(getBot(GroupID))
+    msg = await groupFolder.syncFromGroup(dirPath=f"Data/GroupFile_Backup", bot=bot, concurrentNum=200, ignoreTempFile=True, mode="Origin")
+    await panBackUp.send(msg)
+    backDir = f"Data/GroupFile_Backup/{GroupID}"
+    files = groupFolder.getAllFiles()
+    panDir = f"apps/Hiyori/GroupFile_Backup/{GroupID}"
+    await panBackUp.send("正在将文件备份至百度网盘...")
+    userInfo = await baiduPan.userInfo(QQ=event.user_id, matcher=matcher)
+    vip_type = userInfo["vip_type"]
+    match vip_type:
+        case 2:
+            chunkSize = 32
+        case 1:
+            chunkSize = 16
+        case _:
+            chunkSize = 4
+
+    for file in files:
+        relPath = os.path.relpath(file.local_path, backDir)
+        panPath = "/" + os.path.normpath(os.path.dirname(os.path.join(panDir, relPath))).replace("\\", "/").strip("/")
+
+        result = await baiduPan.uploadFile(QQ=event.user_id, localPath=file.local_path, panPath=panPath, chunkSize=chunkSize, matcher=matcher)
+        logger.success(json.dumps(result))
+        # await panBackUp.send(f"文件{os.path.basename(file.local_path)}上传结果:{json.dumps(result)}")
+    msg = MessageSegment.at(event.user_id) + "已将文件上传至百度网盘"
+    await panBackUp.send(msg)

@@ -6,13 +6,15 @@
 @Ver : 1.0.0
 """
 import asyncio
+import json
 
 from Hiyori.Utils.API.Baidu import baidu
 from nonebot.matcher import Matcher
 import aiohttp
 import os
 import aiofiles
-import requests
+import hashlib
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 async def getToken(QQ: int, matcher: Matcher) -> int | None:
@@ -40,13 +42,11 @@ async def userInfo(QQ: int, matcher: Matcher = None) -> dict[str, any] | None:
     token = await getToken(QQ, matcher)
     if token is None:
         return None
-    token = baidu.Api.Pan.access_token
     url = f"https://pan.baidu.com/rest/2.0/xpan/nas?access_token={token}&method=uinfo"
     # 发送请求
     async with aiohttp.ClientSession() as session:
         async with session.get(url=url) as response:
             result = await response.json()
-            print(result)
             return result
 
 
@@ -318,8 +318,7 @@ async def downloadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher =
     return os.path.getsize(localPath), info["filename"]
 
 
-# TODO 等待实现
-async def preUploadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher = None) -> dict[str, any] | None:
+async def _preUploadFile(QQ: int, localPath: str, panPath: str, rtype: int = 1, chunkSize: int = 4, matcher: Matcher = None) -> (dict[str, any], list):
     """
     网盘文件分片上传，预上传。若不成功返回None，否则返回分片请求结果。
 
@@ -327,33 +326,105 @@ async def preUploadFile(QQ: int, localPath: str, panPath: str, matcher: Matcher 
     :param matcher: 事件matcher
     :param localPath: 本地文件地址
     :param panPath: 网盘地址
+    :param rtype: 文件命名策略。1 表示当path冲突时，进行重命名；2 表示当path冲突且block_list不同时，进行重命名；3 当云端存在同名文件时，对该文件进行覆盖
+    :param chunkSize: 分片大小
 
-    返回字典参数：\n
-    has_more	int	是否还有下一页，0表示无，1表示有 \n
-    cursor	int	当还有下一页时，为下一次查询的起点 \n
-    list	list	文件列表 \n
-    list[0]["category"] int	文件类型 \n
-    list[0]["fs_id"]    int	文件在云端的唯一标识 \n
-    list[0]["isdir"]	int	是否是目录，0为否，1为是 \n
-    list[0]["local_ctime"]	int	文件在客户端创建时间\n
-    list[0]["local_mtime"]	int	文件在客户端修改时间\n
-    list[0]["server_ctime"]	int	文件在服务端创建时间\n
-    list[0]["server_mtime"] int	文件在服务端修改时间\n
-    list[0]["md5"]  string	云端哈希（非文件真实MD5）\n
-    list[0]["size"]	int	文件大小\n
-    list[0]["thumbs"]   string	缩略图地址\n
     """
-    pass
+
+    token = await getToken(QQ, matcher)
+    url = f"https://pan.baidu.com/rest/2.0/xpan/file?method=precreate&access_token={token}"
+    if not os.path.isfile(localPath):
+        return None
+    origin_block_list, content_md5 = await _getBlockList(path=localPath, chunkSize=chunkSize)
+    block_list = ['"' + b + '"' for b in origin_block_list]
+    block_list = '[' + ",".join(block_list) + ']'
+    size = os.stat(localPath).st_size
+    params = {"path": panPath, "size": size, "isdir": 0, "block_list": block_list, "autoinit": 1, "rtype": rtype, "content-md5": content_md5}
+    async with aiohttp.ClientSession() as session:
+        # 设置默认超时时长为60s
+        async with session.post(url=url, data=params, timeout=60) as response:
+            result = await response.json()
+            return result, origin_block_list
 
 
-async def singleStepUploadFile(QQ: int, localPath: str, panPath: str, ondup: str = "fail", matcher: Matcher = None) -> dict[str, any] | None:
+async def uploadFile(QQ: int, localPath: str, panPath: str, ondup: str = "fail", chunkSize: int = None, matcher: Matcher = None):
+    token = await getToken(QQ=QQ, matcher=matcher)
+    info = await userInfo(QQ=QQ)
+    vip_type = info["vip_type"]
+    if chunkSize is None:
+        match vip_type:
+            case 2:
+                chunkSize = 32
+            case 1:
+                chunkSize = 16
+            case _:
+                chunkSize = 4
+        # 判断文件是否存在
+    if not os.path.isfile(localPath):
+        raise FileNotFoundError("文件不存在")
+    # 小于分片直接单步上传
+    if os.stat(localPath).st_size <= chunkSize * 1024 * 1024:
+        return await uploadFile_singleStep(QQ=QQ, localPath=localPath, panPath=panPath, ondup=ondup)
+
+    # 预上传
+    panPath = "/" + os.path.join(panPath, os.path.basename(localPath)).replace("\\", "/")
+    if ondup == "fail":
+        rtype = 0
+    elif ondup == "overwrite":
+        rtype = 3
+    else:
+        rtype = 1
+    result, block_list = await _preUploadFile(QQ=QQ, localPath=localPath, panPath=panPath, rtype=rtype, chunkSize=chunkSize, matcher=matcher)
+    if result["errno"] != 0:
+        # 预上传失败，返回预上传结果
+        return result
+    # 分片上传
+    blocks = result["block_list"]
+    uploadid = result["uploadid"]
+    url = f"https://d.pcs.baidu.com/rest/2.0/pcs/superfile2"
+    params = {"method": "upload", "access_token": token, "type": "tmpfile", "path": panPath, "uploadid": uploadid,
+              "partseq": 0}
+    chunkRead = chunkSize * 1024 * 1024
+    async with aiohttp.ClientSession() as session:
+        async with aiofiles.open(file=localPath, mode="rb") as file:
+            count = 0
+            while True:
+                chunk = await file.read(chunkRead)
+                if not chunk:
+                    break
+                if count not in blocks:
+                    params["partseq"] += 1
+                    count += 1
+                    continue
+                else:
+                    data = aiohttp.FormData()
+                    data.add_field("file",
+                                   value=chunk,
+                                   filename="temp__" + os.path.basename(localPath) + f"__{count}")
+                    async with session.post(url=url, params=params, data=data) as response:
+                        result = await response.text()
+                        result = json.loads(result)
+                        params["partseq"] += 1
+                        count += 1
+    # 创建文件
+
+    url = f"https://pan.baidu.com/rest/2.0/xpan/file?method=create&access_token={token}"
+    params = {"path": panPath, "size": str(os.stat(localPath).st_size), "isdir": "0", "block_list": json.dumps(block_list), "uploadid": uploadid,
+              "rtype": rtype}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url=url, data=params) as response:
+            result = await response.json()
+            return result
+
+
+async def uploadFile_singleStep(QQ: int, localPath: str, panPath: str, ondup: str = "fail", matcher: Matcher = None) -> dict[str, any] | None:
     """
     网盘文件单步上传。若不成功返回None，否则返回分片请求结果。
 
     :param QQ: 用户QQ号
     :param matcher: 事件matcher
     :param localPath: 本地文件地址
-    :param panPath: 网盘地址
+    :param panPath: 网盘目录地址，请以"/"开头
     :param ondup: 覆盖方式："fail":重名时返回失败，"overwrite":重名时覆盖，"newcopy":重名时重新命名
 
     返回字典参数：\n
@@ -370,10 +441,7 @@ async def singleStepUploadFile(QQ: int, localPath: str, panPath: str, ondup: str
     "request_id": 4978394455905006592, "size": 6656}
     """
     # 判断文件是否存在
-    if not os.path.exists(localPath):
-        return None
-    # 文件大小不得超过2G
-    if os.stat(localPath).st_size >= 2 * 1024 * 1024 * 1024 - 1024:
+    if not os.path.isfile(localPath):
         return None
     token = await getToken(QQ, matcher)
     if token is None:
@@ -383,19 +451,17 @@ async def singleStepUploadFile(QQ: int, localPath: str, panPath: str, ondup: str
     panPath = os.path.join(panPath, os.path.basename(localPath)).replace("\\", "/")
     params = {"method": "upload", "access_token": token, "path": panPath, "ondup": ondup}
     async with aiohttp.ClientSession() as session:
-        async with aiofiles.open(file=localPath, mode="rb") as file:
-            # 流式文件生成器
-            async def fileGen():
-                while True:
-                    # 流式上传大小默认为4M
-                    chunk = await file.read(4 * 1024 * 1024)
-                    if not chunk:
-                        break
-                    yield chunk
-
-            async with session.post(url=url, data=fileGen(), params=params) as response:
-                content = await response.text()
-                pass
+        data = aiohttp.FormData()
+        data.add_field("file",
+                       open(file=localPath, mode="rb"),
+                       filename=os.path.basename(localPath))
+        async with session.post(url=url, data=data, params=params) as response:
+            try:
+                result = await response.text()
+                result = json.loads(result)
+            except json.JSONDecodeError:
+                return None
+            return result
 
 
 async def deleteFile(QQ: int, pathList: str | list[str], matcher: Matcher = None) -> int:
@@ -424,14 +490,49 @@ async def deleteFile(QQ: int, pathList: str | list[str], matcher: Matcher = None
             return result["errno"]
 
 
+async def _getBlockList(path: str, chunkSize: int) -> (list[str], str):
+    """
+    计算文件分片MD5串与整体md5
+
+    :param path: 文件路径
+    :param chunkSize: 分片大小，可以为4，8，16，32。普通用户=4，普通会员=16，超级会员=32
+    :return: MD5串，失败返回None
+    """
+    result = []
+    if chunkSize not in {4, 8, 16, 32}:
+        return None
+    chunkRead = chunkSize * 1024 * 1024
+    if not os.path.isfile(path):
+        return None
+    async with aiofiles.open(file=path, mode="rb") as file:
+        total_md5 = hashlib.md5()
+        while True:
+            md5 = hashlib.md5()
+            chunk = await file.read(chunkRead)
+            if not chunk:
+                break
+            md5.update(chunk)
+            total_md5.update(chunk)
+            result.append(md5.hexdigest())
+    return result, total_md5.hexdigest()
+
+
+async def _getSliceMD5(path: str) -> str | None:
+    """获取文件校验段MD5"""
+    if not os.path.isfile(path):
+        return None
+    async with aiofiles.open(file=path, mode="rb") as file:
+        md5 = hashlib.md5()
+        while True:
+            chunk = await file.read(256 * 10024)
+            if not chunk:
+                break
+            md5.update(chunk)
+            return md5.hexdigest()
+
+
 if __name__ == '__main__':
-    # 调试相关
-    # asyncio.run(getUserInfo())
-    # asyncio.run(getDiskInfo())
-    # asyncio.run(listDir(path="/Gal/ATRI/ATRI-my  dear moments.docx"))
-    # asyncio.run(listDir_Recurse(path="/"))
-    # asyncio.run(fileInfo(path="/Gal/ATRI/ATRI-my  dear moments.docx"))
-    # asyncio.run(
-    # downloadFile(localPath="C:\\Users\\65416\\Desktop\\网盘测试\\danei2.mp4", panPath="/我的资源/达内java2022年/1 FUNDAMENTAL01/06： 数组（下） 、 方法pm.mp4"))
-    asyncio.run(singleStepUploadFile(QQ=654163754, localPath="E:/Projects/Hiyori/Hiyori/Data/GroupFile_Backup/1.初音真的没有来吗？.txt",
-                                     panPath="/apps/Hiyori", matcher=None))
+    asyncio.run(uploadFile(QQ=654163754,
+                           localPath="E:/Projects/Hiyori/Hiyori/Data/GroupFile_Backup/不区分用户名/905080027/7月tailwindui.zip",
+                           panPath="apps/Hiyori/uploadTest",
+                           ondup="fail"))
