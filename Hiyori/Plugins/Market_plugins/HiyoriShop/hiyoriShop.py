@@ -7,7 +7,7 @@
 """
 from Hiyori.Utils.Shop import Shops, Shop, Item
 
-from .item import 白银会员卡
+from .item import 白银会员卡, 神秘模块抽奖券
 
 
 def HiyoriShopInit():
@@ -22,4 +22,5 @@ def HiyoriShopInit():
     hiyoriShop.addItem(Item(name="穹妹断签保护卡",
                             description="妹妹赛高！断签保护卡，断签时自动消耗。",
                             price=2000, need_attitude=1500))
+    hiyoriShop.addItem(神秘模块抽奖券(name="神秘模块抽奖券", description="使用后抽取神秘模块", price=1000))
     Shops.addShop(hiyoriShop)

@@ -5,19 +5,23 @@
 @Desc: 商店功能汇总
 @Ver : 1.0.0
 """
+import re
+
 from nonebot import on_regex
 from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import MessageSegment, MessageEvent, Bot
 from nonebot.plugin import PluginMetadata
 from nonebot.typing import T_State
 from nonebot.log import logger
+
 from Hiyori.Utils.Shop import Shops
 from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import html_to_pic
 from Hiyori.Utils.Message.At import GetAtQQs, clearAt
 from Hiyori.Utils.Database import DB_Item
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Exception.Market import MarketException
-import re
+
+from .api import info
 
 __plugin_meta__ = PluginMetadata(
     name="商店",  # 用于在菜单显示 用于插件开关
@@ -103,6 +107,11 @@ async def _(event: MessageEvent):
             await checkShop.send(msg)
             return
         check_shop = Shops.shops[shopName]
+        # 无法主动打开匿名商店
+        if check_shop.anonymous:
+            msg = MessageSegment.at(event.user_id) + "查询的商店名不存在哦"
+            await checkShop.send(msg)
+            return
         shopContent = Template
         if check_shop.name == "妃爱":
             name = "妃爱商店"
@@ -112,6 +121,8 @@ async def _(event: MessageEvent):
         shopContent = shopContent.replace("【描述】", check_shop.description)
         itemContent = ""
         for item in check_shop.items.values():
+            if item.anonymous:
+                continue  # 不显示匿名商品
             itemContent += f"<tr>" \
                            f"<td>{item.name}</td>" \
                            f"<td>{item.need_attitude}</td>" \
@@ -128,6 +139,8 @@ async def _(event: MessageEvent):
         # 所有商店
         AllShopContent = ""
         for shop in Shops.shops.values():
+            if shop.anonymous:
+                continue
             shopContent = Template
             shopContent = shopContent.replace("【商店名】", shop.name)
             shopContent = shopContent.replace("【描述】", shop.description)

@@ -165,3 +165,10 @@ def 折扣系数计算(QQ: int, ItemName: str) -> float:
         if DB_Item.hasItem(QQ=QQ, ItemName="萝了吗白银会员卡"):
             return 0.9
     return 1
+
+
+def hasItem(QQ: int, ItemName: str) -> bool:
+    item = DB_Item.getUserItem(QQ, ItemName)
+    if item.Quantity == 0:
+        return False
+    return True
