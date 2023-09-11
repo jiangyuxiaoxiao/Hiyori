@@ -7,28 +7,33 @@
 """
 import json
 import aiofiles
+import os
 from nonebot import get_loaded_plugins
+from Hiyori.Utils.File import JsonFileExist, DirExist
 
 
 class pluginsManager:
     GroupPluginInfo: dict[str, dict[str, bool]] = dict()
     UserPluginInfo: dict[str, dict[str, bool]] = dict()
-    GroupJsonPath: str = "./Data/pluginSwitch/groupConfig.json"
-    UserJsonPath: str = "./Data/pluginSwitch/userConfig.json"
+    GroupJsonPath: str = "./Config/Plugin_Manager/groupConfig.json"
+    UserJsonPath: str = "./Config/Plugin_Manager/userConfig.json"
 
     # 初始化
     @staticmethod
-    async def LoadConfig():
+    def LoadConfig():
         """初始化，从json文件加载配置"""
+        DirExist(os.path.dirname(pluginsManager.GroupJsonPath))
+        JsonFileExist(pluginsManager.GroupJsonPath)
+        JsonFileExist(pluginsManager.UserJsonPath)
         pluginsManager.GroupPluginInfo.clear()
         pluginsManager.UserPluginInfo.clear()
         # 加载群插件配置
-        async with aiofiles.open(pluginsManager.GroupJsonPath, encoding="utf-8", mode="r") as file:
-            info = await file.read()
+        with open(pluginsManager.GroupJsonPath, encoding="utf-8", mode="r") as file:
+            info = file.read()
             pluginsManager.GroupPluginInfo = json.loads(info)
         # 加载用户插件配置
-        async with aiofiles.open(pluginsManager.UserJsonPath, encoding="utf-8", mode="r") as file:
-            info = await file.read()
+        with open(pluginsManager.UserJsonPath, encoding="utf-8", mode="r") as file:
+            info = file.read()
             pluginsManager.UserPluginInfo = json.loads(info)
 
     # 保存群组配置

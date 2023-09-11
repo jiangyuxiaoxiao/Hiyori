@@ -5,20 +5,16 @@
 @Desc: 
 @Ver : 1.0.0
 """
-from .pluginManager import pluginsManager
+
 from nonebot.message import run_preprocessor
 from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import Event
 from nonebot.exception import IgnoredException
 from nonebot import get_driver
 
+from .pluginManager import pluginsManager
+
 driver = get_driver()
-
-
-# 初始化
-@driver.on_startup
-async def loadConfig():
-    await pluginsManager.LoadConfig()
 
 
 # 插件开关审核

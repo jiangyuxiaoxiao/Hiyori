@@ -5,18 +5,23 @@
 @Desc: 
 @Ver : 1.0.0
 """
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageEvent, MessageSegment
-from nonebot.adapters.onebot.v11 import GROUP_ADMIN, GROUP_OWNER
-from Hiyori.Utils.Permissions import HIYORI_OWNER, HIYORI_ADMIN
-from Hiyori.Utils.Priority import Priority
+import re
+
 from nonebot import on_regex
 from nonebot import get_loaded_plugins
-import re
-from .pluginManager import pluginsManager
-from .hook import check_group_plugin_status, loadConfig
-from .api import *
-from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import md_to_pic
 from nonebot.plugin import PluginMetadata
+from nonebot.log import logger
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import GROUP_ADMIN, GROUP_OWNER
+
+from Hiyori.Plugins.Basic_plugins.nonebot_plugin_htmlrender import md_to_pic
+
+from Hiyori.Utils.Permissions import HIYORI_OWNER, HIYORI_ADMIN
+from Hiyori.Utils.Priority import Priority
+
+from .pluginManager import pluginsManager
+from .hook import check_group_plugin_status
+from .api import *
 
 __plugin_meta__ = PluginMetadata(
     name="插件开关",
@@ -39,6 +44,10 @@ __plugin_meta__ = PluginMetadata(
         "Type": "Admin_Plugin",
     },
 )
+
+# 初始化
+pluginsManager.LoadConfig()
+logger.success("插件开关配置成功加载")
 
 # 群组插件开关
 groupPluginSwitch = on_regex(r"(^#群组开启插件)|(^#群组关闭插件)", priority=Priority.系统优先级,

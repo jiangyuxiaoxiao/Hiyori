@@ -17,7 +17,7 @@ from nonebot.adapters.onebot.v11 import MessageSegment
 from Hiyori.Utils.File import DirExist, JsonFileExist
 
 # 模块初始化
-status = DirExist("./Data/Utils/API", logEnable=True)
+status = DirExist("Config/Utils/API", logEnable=True)
 
 
 # Json Config 格式定义
@@ -246,8 +246,8 @@ class Baidu:
     def __init__(self, api=Api()):
         self.Api = api
         # 检查文件是否存在，不存在则初始化创建
-        JsonFileExist(Path="./Data/Utils/API/Baidu.json", initContent=self.to_dict(), logEnable=True)
-        with open("./Data/Utils/API/Baidu.json", encoding="utf-8", mode="r") as f:
+        JsonFileExist(Path="./Config/Utils/API/Baidu.json", initContent=self.to_dict(), logEnable=True)
+        with open("./Config/Utils/API/Baidu.json", encoding="utf-8", mode="r") as f:
             data = json.loads(f.read())
             self.Api = Baidu.Api.from_dict(data["Api"])
 
@@ -258,13 +258,13 @@ class Baidu:
 
     def loads(self):
         """从配置文件中读取"""
-        with open("./Data/Utils/API/Baidu.json", encoding="utf-8", mode="r") as f:
+        with open("./Config/Utils/API/Baidu.json", encoding="utf-8", mode="r") as f:
             data = json.loads(f.read())
             self.Api = Baidu.Api.from_dict(data["Api"])
 
     def dumps(self):
         """写入配置到文件中"""
-        with open("./Data/Utils/API/Baidu.json", encoding="utf-8", mode="w") as f:
+        with open("./Config/Utils/API/Baidu.json", encoding="utf-8", mode="w") as f:
             f.write(json.dumps(self.to_dict(), indent=2, ensure_ascii=False))
 
 

@@ -6,11 +6,12 @@
 @Ver : 1.0.0
 """
 import json
+import os
 from Hiyori.Utils.File import JsonFileExist, DirExist
 from Hiyori.Utils.Config import Config
 
-ConfigPath = "./Data/MultiBot_Support/config.json"
-ConfigDir = "./Data/MultiBot_Support"
+ConfigPath = "./Config/MultiBot_Support/config.json"
+ConfigDir = os.path.dirname(ConfigPath)
 
 
 class MultiBotConfig(Config):

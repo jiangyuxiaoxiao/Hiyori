@@ -23,7 +23,7 @@ sys.path.append("../")
 sys.path.append("./Plugins/Basic_plugins")  # 底层实现插件，管理类插件，请在加载时置于最顶层
 sys.path.append("./Plugins/Debug_plugins")  # 调试插件
 sys.path.append("./Plugins/Nonebot_plugins")  # nonebot社区插件
-sys.path.append("Plugins/Normal_plugins")  # 普通功能插件
+sys.path.append("./Plugins/Normal_plugins")  # 普通功能插件
 sys.path.append("./Plugins/Personal_plugins")  # 私人插件
 sys.path.append("./Plugins/Market_plugins")  # 市场插件
 sys.path.append("./Plugins/AI_plugins")  # AI生成插件
@@ -47,6 +47,7 @@ if not os.path.isdir("Log"):
     os.makedirs("Log")
 now = datetime.now().strftime("%Y-%m-%d")
 logger.add(f"Log/Hiyori.log", level=save_log_level, rotation="00:01")
+
 # 根据初始化配置选择插件目录配置文件进行初始化
 # 默认配置文件路径为./plugin.dev.json
 # 根据在.env中的环境设置，进行更新
@@ -66,6 +67,9 @@ with open(plugin_dir, encoding="utf-8") as plg_dir:
         plugin_time = (time2 - time1) / 1000000000
         plugin_time = round(plugin_time, 3)
         logger.info(f"插件{plugin}加载用时{plugin_time}s")
+
+# 插件加载完毕后，加载meta.json
+
 
 # bot开始运行时间
 endTime = time.time_ns()

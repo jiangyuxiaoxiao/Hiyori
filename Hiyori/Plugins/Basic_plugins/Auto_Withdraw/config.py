@@ -5,12 +5,13 @@
 @Desc: 相关配置
 @Ver : 1.0.0
 """
+import os
 import json
 from Hiyori.Utils.File import DirExist, JsonFileExist
 from Hiyori.Utils.Config import Config
 
-ConfigPath = "./Data/Auto_Withdraw/config.json"
-ConfigDir = "./Data/Auto_Withdraw"
+ConfigPath = "./Config/Auto_Withdraw/config.json"
+ConfigDir = os.path.dirname(ConfigPath)
 
 
 class AutoWithdrawConfig(Config):
