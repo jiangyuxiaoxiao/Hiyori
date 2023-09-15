@@ -5,15 +5,11 @@
 @Desc: 帮助菜单插件
 @Ver : 1.0.0
 """
-import pathlib
 from nonebot.plugin import _plugins
 from nonebot import on_regex
-from nonebot.adapters.onebot.v11 import GROUP_ADMIN, GROUP_OWNER, MessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from .api import *
 from Hiyori.Utils.Priority import Priority
-from PIL import Image
-import io
-import os
 
 from Hiyori.Plugins.Basic_plugins import nonebot_plugin_htmlrender as htmlRender
 from Hiyori.Plugins.Basic_plugins import Plugin_Manager

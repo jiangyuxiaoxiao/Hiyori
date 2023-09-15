@@ -15,6 +15,8 @@ from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.plugin import _plugins
 from datetime import datetime
 
+from Hiyori.Utils.File import DirExist
+
 # 程序开始时间
 startTime = time.time_ns()
 
@@ -69,7 +71,31 @@ with open(plugin_dir, encoding="utf-8") as plg_dir:
         logger.info(f"插件{plugin}加载用时{plugin_time}s")
 
 # 插件加载完毕后，加载meta.json
-
+metaDir = "Config"
+configInitFlag = False
+for plugin_name, plugin in _plugins.items():
+    metaPath = os.path.join(metaDir, plugin_name, "Metadata.json")
+    # json文件不存在，进行初始化
+    if not os.path.isfile(metaPath) or configInitFlag:
+        if plugin.metadata is None:
+            # 不进行初始化
+            logger.debug(f"插件{plugin_name}不存在metaData，不写入配置文件。")
+        else:
+            # 设置默认配置
+            extra = plugin.metadata.extra
+            jsonDict = {
+                "extra": extra
+            }
+            DirExist(os.path.join(metaDir, plugin_name))
+            with open(file=metaPath, mode="w", encoding="utf-8") as metaFile:
+                metaFile.write(json.dumps(jsonDict, ensure_ascii=False, indent=4))
+    # json文件存在，根据json文件修改metaData的extraInfo
+    else:
+        with open(file=metaPath, mode="r", encoding="utf-8") as metaFile:
+            info = metaFile.read()
+            info = json.loads(info)
+            if info["extra"] is not None:
+                plugin.metadata.extra = info["extra"]
 
 # bot开始运行时间
 endTime = time.time_ns()

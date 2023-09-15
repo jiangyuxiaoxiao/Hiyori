@@ -19,6 +19,7 @@ class 广东话翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "yue":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消粤语翻译模块"
                 await matcher.send(msg)
                 return
@@ -33,6 +34,7 @@ class 文言文翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "wyw":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消文言文翻译模块"
                 await matcher.send(msg)
                 return
@@ -47,6 +49,7 @@ class 日语翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "jp":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消日语翻译模块"
                 await matcher.send(msg)
                 return
@@ -61,6 +64,7 @@ class 韩语翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "kor":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消韩语翻译模块"
                 await matcher.send(msg)
                 return
@@ -76,6 +80,7 @@ class 英语翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "en":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消英语翻译模块"
                 await matcher.send(msg)
                 return
@@ -91,6 +96,7 @@ class 德语翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "de":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消德语翻译模块"
                 await matcher.send(msg)
                 return
@@ -106,6 +112,7 @@ class 法语翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "de":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消法语翻译模块"
                 await matcher.send(msg)
                 return
@@ -121,6 +128,7 @@ class 俄语翻译模块(Item):
         if str(QQ) in translatorConfig.config.keys():
             if translatorConfig.config[str(QQ)] == "ru":
                 translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
                 msg = MessageSegment.at(QQ) + "已取消俄语翻译模块"
                 await matcher.send(msg)
                 return

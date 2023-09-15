@@ -5,6 +5,7 @@
 @Desc: 商店功能封装
 @Ver : 1.0.0
 """
+from typing import Callable
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 from nonebot.adapters import Bot, Event
@@ -19,13 +20,13 @@ class Item:
                  hasTarget: bool = False, need_attitude: int = 0, anonymous: bool = False,
                  Functions: dict[str, any] = None):
 
-        self.name = name  # 商品名
-        self.description = description  # 商品描述
-        self.price = price  # 商品价格，注意价格的最小单位为0.01，小于0.01的值将被抹去
-        self.hasTarget = hasTarget  # 有作用对象
-        self.need_attitude = need_attitude  # 购买有好感度需求
-        self.anonymous = anonymous  # 隐式商品
-        self.Functions = Functions
+        self.name: str = name  # 商品名
+        self.description: str = description  # 商品描述
+        self.price: float = price  # 商品价格，注意价格的最小单位为0.01，小于0.01的值将被抹去
+        self.hasTarget: bool = hasTarget  # 有作用对象
+        self.need_attitude: int = need_attitude  # 购买有好感度需求
+        self.anonymous: bool = anonymous  # 隐式商品
+        self.Functions: dict[str, any] = Functions
 
     async def beforePurchase(self, QQ: int, Targets: list[int] = None, Num: int = 0, bot: Bot = None, event: Event = None, matcher: Matcher = None,
                              state: T_State = None):

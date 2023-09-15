@@ -78,14 +78,19 @@ def GetGroupAvatarUrl(Group: int, Size: int = 640) -> str:
     """
     获取群头像Url，默认大小640*640。
 
-
     :param Group: 群号
     :param Size: 枚举整数，可取值：100、640
-    :return: Url
+    :return Url: 群头像url
     """
     return f"https://p.qlogo.cn/gh/{Group}/{Group}/{Size}"
 
 
 async def GetGroupName(bot: Bot, Group: int) -> str:
+    """
+    获取群名
+    :param bot: bot实例
+    :param Group: 群号
+    :return 群名
+    """
     groupInfo = await bot.get_group_info(group_id=Group)
     return groupInfo["group_name"]

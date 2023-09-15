@@ -41,3 +41,5 @@
 /Hiyori/Utils/API/Caiyun/
 /Hiyori/Plugins/Nonebot_plugins/nonebot_plugin_brainfuck/
 /Hiyori/Config/
+/Hiyori/.env.test
+/Hiyori/plugin.test.json

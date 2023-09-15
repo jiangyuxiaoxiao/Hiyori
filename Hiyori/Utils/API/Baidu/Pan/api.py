@@ -14,6 +14,8 @@ import aiohttp
 import os
 import aiofiles
 import hashlib
+
+
 # from tenacity import retry, stop_after_attempt, wait_fixed
 
 
@@ -348,6 +350,29 @@ async def _preUploadFile(QQ: int, localPath: str, panPath: str, rtype: int = 1, 
 
 
 async def uploadFile(QQ: int, localPath: str, panPath: str, ondup: str = "fail", chunkSize: int = None, matcher: Matcher = None):
+    """
+    网盘文件上传，
+
+    :param QQ: 用户QQ号
+    :param localPath: 本地文件地址
+    :param panPath: 网盘地址
+    :param ondup: 重名文件策略：1. fail：重名则上传失败  2. overwrite：重名则覆盖  3. newcopy：重名则重命名
+    :param chunkSize: 分片大小，单位MB。建议使用默认值
+    :param matcher: 事件matcher
+
+    返回说明 \n
+    errno	int	错误码\n
+    fs_id	uint64	文件在云端的唯一标识ID\n
+    md5	string	文件的MD5，只有提交文件时才返回，提交目录时没有该值【单步上传时不返回】\n
+    server_filename	string	文件名【单步上传时不返回】\n
+    category	int	分类类型, 1 视频 2 音频 3 图片 4 文档 5 应用 6 其他 7 种子【单步上传时不返回】\n
+    path	string	上传后使用的文件绝对路径\n
+    size	uint64	文件大小，单位B\n
+    ctime	uint64	文件创建时间\n
+    mtime	uint64	文件修改时间\n
+    isdir	int	是否目录，0 文件、1 目录 【单步上传时不返回】\n
+
+    """
     token = await getToken(QQ=QQ, matcher=matcher)
     info = await userInfo(QQ=QQ)
     vip_type = info["vip_type"]
@@ -364,7 +389,7 @@ async def uploadFile(QQ: int, localPath: str, panPath: str, ondup: str = "fail",
         raise FileNotFoundError("文件不存在")
     # 小于分片直接单步上传
     if os.stat(localPath).st_size <= chunkSize * 1024 * 1024:
-        return await uploadFile_singleStep(QQ=QQ, localPath=localPath, panPath=panPath, ondup=ondup)
+        return await _uploadFile_singleStep(QQ=QQ, localPath=localPath, panPath=panPath, ondup=ondup)
 
     # 预上传
     panPath = "/" + os.path.join(panPath, os.path.basename(localPath)).replace("\\", "/")
@@ -417,7 +442,7 @@ async def uploadFile(QQ: int, localPath: str, panPath: str, ondup: str = "fail",
             return result
 
 
-async def uploadFile_singleStep(QQ: int, localPath: str, panPath: str, ondup: str = "fail", matcher: Matcher = None) -> dict[str, any] | None:
+async def _uploadFile_singleStep(QQ: int, localPath: str, panPath: str, ondup: str = "fail", matcher: Matcher = None) -> dict[str, any] | None:
     """
     网盘文件单步上传。若不成功返回None，否则返回分片请求结果。
 

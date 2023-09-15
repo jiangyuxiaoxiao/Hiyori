@@ -7,7 +7,9 @@
 """
 import peewee
 
-Hiyori = peewee.SqliteDatabase('./Data/Database/Hiyori.db')
+from .config import DB
+
+Hiyori = peewee.SqliteDatabase(DB)
 
 
 # 现货仓库表

@@ -14,7 +14,9 @@ from nonebot import get_bots
 from nonebot.adapters.onebot.v11 import Bot
 import sys
 
-Hiyori = peewee.SqliteDatabase('./Data/Database/Hiyori.db')
+from .config import DB
+
+Hiyori = peewee.SqliteDatabase(DB)
 
 
 # 用户数据表
@@ -105,11 +107,17 @@ class DB_User:
         groupInsertCount = groupUpdateCount = 0
         bots: dict[str, Bot] = get_bots()
         for bot in bots.values():
+            updateGroups: set = set()
             # 获取群列表
             groups = await bot.call_api("get_group_list", **{"no_cache": True})
             for group in groups:
                 # group_id 群号
                 GroupID = group["group_id"]
+                # 跳过重复加载项
+                if GroupID in updateGroups:
+                    continue
+                else:
+                    updateGroups.add(GroupID)
                 # group_name 群名
                 GroupName = group["group_name"]
                 # 群更新
@@ -139,7 +147,22 @@ class DB_User:
                                 userUpdateCount = userUpdateCount + 1
                                 Users_Memory[QQ].Name = Name
                                 Users_Memory[QQ].save()
-
+            # 获取好友列表
+            users = await bot.get_friend_list()
+            with Hiyori.atomic():
+                for user in users:
+                    QQ = user["user_id"]
+                    Name = user["nickname"]
+                    if QQ not in Users_Memory:
+                        userInsertCount = userInsertCount + 1
+                        # 更新数据库与内存
+                        Users_Memory[QQ] = User.create(QQ=QQ, Name=Name)
+                    else:
+                        # 检查用户名是否变更
+                        if Users_Memory[QQ].Name != Name:
+                            userUpdateCount = userUpdateCount + 1
+                            Users_Memory[QQ].Name = Name
+                            Users_Memory[QQ].save()
         # 输出统计信息
         endTime = time.time_ns()
         Time = (endTime - startTime) / 1000000
