@@ -16,6 +16,7 @@ from .slaveMarket import DB_slave
 from .spot import DB_Spot
 from .config import DB, path, MsgDB
 from .message import DB_Message
+from .hook import updateUser
 # Hiyori API 调用
 from Hiyori.Utils.File import DirExist
 

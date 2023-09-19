@@ -476,6 +476,7 @@ class QQGroupFolder:
             result = folder.getFolderByLocalPath(localPath)
             if result is not None:
                 return result
+
         for folder in self.local_folders:
             result = folder.getFolderByLocalPath(localPath)
             if result is not None:

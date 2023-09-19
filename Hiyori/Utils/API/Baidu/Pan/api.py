@@ -24,6 +24,7 @@ async def getToken(QQ: int, matcher: Matcher) -> int | None:
     if status == 1:
         baidu.dumps()
     elif status == -1:
+        await matcher.send("token获取失败，超级管理员未配置key。")
         return None
     return baidu.Api.Pan.userInfo[str(QQ)]["access_token"]
 

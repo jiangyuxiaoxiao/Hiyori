@@ -26,6 +26,10 @@ async def check_blacklist(bot: Bot, event: Event):
             raise IgnoredException("用户黑名单屏蔽")
         # 对于主人和管理员发起的事件，无视黑名单审核
         if permission in (0, 1) or str(QQ) in config.superusers:
+            if hasattr(event, "group_id"):
+                # 确保群聊存在
+                GroupID = event.group_id
+                DB_User.groupExist(GroupID)
             return
     if hasattr(event, "group_id"):
         GroupID = event.group_id

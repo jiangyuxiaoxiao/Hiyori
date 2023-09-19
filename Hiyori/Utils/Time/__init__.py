@@ -26,3 +26,5 @@ def printTimeInfo(nsTime: int, roundNum: int = 3) -> str:
         minute = int((nsTime - hour * 3600 * (10 ** 9)) / (60 * (10 ** 9)))
         time = f"{hour}h{minute}min"
     return time
+
+

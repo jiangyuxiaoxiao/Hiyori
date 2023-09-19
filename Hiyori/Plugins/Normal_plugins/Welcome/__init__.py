@@ -26,7 +26,5 @@ async def _(event: GroupIncreaseNoticeEvent):
     QQ = event.user_id
     message = MessageSegment.text("好耶！超可爱的") + MessageSegment.at(QQ) + MessageSegment.text("入群了哦！欢迎~")
     await welcome.send(message)
-    message = "请输入 #帮助 来查看妃爱的具体功能，\n" \
-              "输入 #查看更新 来查看妃爱的版本更新哦！\n" \
-              "希望领养妃爱的可以进群471138696了解\n"
+    message = "请输入 #帮助 来查看妃爱的具体功能，"
     await welcome.send(message)

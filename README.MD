@@ -18,7 +18,6 @@
       <a href="https://wakatime.com/badge/user/7b275a68-8fe7-44fb-9b22-86cfd199fc1e/project/3d1eb992-cc9a-4fee-8d6a-337d2fee4569">
         <img src="https://wakatime.com/badge/user/7b275a68-8fe7-44fb-9b22-86cfd199fc1e/project/3d1eb992-cc9a-4fee-8d6a-337d2fee4569.svg" alt="wakatime">
       </a>
-      <img alt="go cqhttp-1.1.0" src="https://img.shields.io/badge/QQ群-471138696-orange">
     </p>  
    <a href="http://和泉妃爱.com">
        项目文档
