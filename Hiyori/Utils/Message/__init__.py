@@ -6,3 +6,5 @@
 @Ver : 1.0.0
 """
 from .Image import ImageMessage, get_message_img
+from .Record import RecordMessage
+

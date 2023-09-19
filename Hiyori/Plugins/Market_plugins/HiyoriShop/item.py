@@ -27,7 +27,8 @@ class 白银会员卡(UniqueItem):
 class 神秘模块抽奖券(Item):
     async def use(self, QQ: int, Targets: list[int] = None, Num: int = 0, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
         # 奖池 pool
-        pool: list[str] = ["文言文翻译模块", "广东话翻译模块", "英语翻译模块", "韩语翻译模块", "德语翻译模块", "日语翻译模块", "法语翻译模块", "俄语翻译模块"]
+        pool: list[str] = ["文言文翻译模块", "广东话翻译模块", "英语翻译模块", "韩语翻译模块", "德语翻译模块", "日语翻译模块", "法语翻译模块", "俄语翻译模块",
+                           "中文翻译模块"]
         result: dict[str, int] = {}
         for i in range(Num):
             getItem = random.choice(pool)

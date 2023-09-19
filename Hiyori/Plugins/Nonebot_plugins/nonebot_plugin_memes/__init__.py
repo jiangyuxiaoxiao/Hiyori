@@ -42,6 +42,8 @@ from nonebot.typing import T_Handler, T_State
 from nonebot.utils import run_sync
 from pypinyin import Style, pinyin
 
+from Hiyori.Utils.Priority import Priority
+
 require("nonebot_plugin_localstore")
 
 from nonebot_plugin_localstore import get_cache_dir
@@ -382,11 +384,11 @@ def create_matchers():
         matchers: List[Type[Matcher]] = []
         if meme.keywords:
             matchers.append(
-                on_message(command_rule(meme.keywords), block=False, priority=12)
+                on_message(command_rule(meme.keywords), block=False, priority=Priority.普通优先级)
             )
         if meme.patterns:
             matchers.append(
-                on_message(regex_rule(meme.patterns), block=False, priority=13)
+                on_message(regex_rule(meme.patterns), block=False, priority=Priority.低优先级)
             )
 
         for matcher in matchers:
@@ -420,7 +422,7 @@ def create_matchers():
         )
         await process(bot, matcher, random_meme, image_sources, texts, users)
 
-    random_matcher = on_message(command_rule(["随机表情"]), block=False, priority=12)
+    random_matcher = on_message(command_rule(["随机表情"]), block=False, priority=Priority.普通优先级)
     fake_meme = Meme("_fake", _, MemeParamsType())
     random_matcher.append_handler(
         random_handler, parameterless=[split_msg_v11(fake_meme)]

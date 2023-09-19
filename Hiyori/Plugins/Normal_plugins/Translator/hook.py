@@ -25,7 +25,7 @@ async def cantonese(bot: Bot, api: str, data: dict[str, any]):
     if str(QQ) in translatorConfig.config:
         if translatorConfig.config[str(QQ)] == "":
             return
-        outMsg = ""
+        outMsg = None
         for msg in messages:
             if hasattr(msg, "type"):
                 if msg.type == "text":
@@ -46,7 +46,10 @@ async def cantonese(bot: Bot, api: str, data: dict[str, any]):
                         text = "\n".join(outTexts) if len(outTexts) > 1 else outTexts[0]
                         outMsg += MessageSegment.text(text)
                 else:
-                    outMsg += msg
+                    if not outMsg:
+                        outMsg = msg
+                    else:
+                        outMsg += msg
             else:
                 return
         data["message"] = outMsg

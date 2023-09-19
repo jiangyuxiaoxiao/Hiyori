@@ -14,6 +14,21 @@ from Hiyori.Utils.Shop import Item
 from .config import translatorConfig
 
 
+class 中文翻译模块(Item):
+    async def use(self, QQ: int, Targets: list[int] = None, Num: int = 0, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
+        if str(QQ) in translatorConfig.config.keys():
+            if translatorConfig.config[str(QQ)] == "zh":
+                translatorConfig.config[str(QQ)] = ""
+                translatorConfig.dump()
+                msg = MessageSegment.at(QQ) + "已取消中文翻译模块"
+                await matcher.send(msg)
+                return
+        translatorConfig.config[str(QQ)] = "zh"
+        translatorConfig.dump()
+        msg = MessageSegment.at(QQ) + "已切换至中文翻译模块，再次使用可取消。"
+        await matcher.send(msg)
+
+
 class 广东话翻译模块(Item):
     async def use(self, QQ: int, Targets: list[int] = None, Num: int = 0, bot: Bot = None, event: Event = None, matcher: Matcher = None, state: T_State = None):
         if str(QQ) in translatorConfig.config.keys():

@@ -6,11 +6,13 @@
 @Ver : 1.0.0
 """
 from Hiyori.Utils.Shop import Shops, Shop
-from .items import 文言文翻译模块, 广东话翻译模块, 英语翻译模块, 韩语翻译模块, 德语翻译模块, 日语翻译模块, 法语翻译模块, 俄语翻译模块
+from .items import 中文翻译模块, 文言文翻译模块, 广东话翻译模块, 英语翻译模块, 韩语翻译模块, 德语翻译模块, 日语翻译模块, 法语翻译模块, 俄语翻译模块
 
 
 def TranslateShopInit():
     TranslateShop = Shop(name="翻译模块商店", description="神秘模块商店", anonymous=True)
+    TranslateShop.addItem(
+        中文翻译模块(name="中文翻译模块", description="使用后可以切换中文翻译模组激活状态", price=2000, need_attitude=500, anonymous=True))
     TranslateShop.addItem(
         文言文翻译模块(name="文言文翻译模块", description="使用后可以切换文言文翻译模组激活状态", price=2000, need_attitude=500, anonymous=True))
     TranslateShop.addItem(
