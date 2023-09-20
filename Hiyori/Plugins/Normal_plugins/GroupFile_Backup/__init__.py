@@ -43,15 +43,15 @@ __plugin_meta__ = PluginMetadata(
            }
 )
 
-concurrentSync = on_regex(r"^群文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
-uploadSync = on_regex(r"^本地文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
-panBackUp = on_regex(r"^群文件百度网盘备份", priority=Priority.普通优先级)
+concurrentSync = on_regex(r"^#?群文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
+uploadSync = on_regex(r"^#?本地文件同步", permission=HIYORI_OWNER, priority=Priority.普通优先级)
+panBackUp = on_regex(r"^#?群文件百度网盘备份", priority=Priority.普通优先级)
 
 
 @concurrentSync.handle()
 async def _(bot: Bot, event: GroupMessageEvent):
     msg = event.message.extract_plain_text()
-    msg = re.sub(pattern=r"^群文件同步", repl="", string=msg).strip(" ").split(" ")
+    msg = re.sub(pattern=r"^#?群文件同步", repl="", string=msg).strip(" ").split(" ")
     if len(msg) == 1 and msg[0] == "":
         msg = []
     argparser = argparse.ArgumentParser()
@@ -103,7 +103,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
 @uploadSync.handle()
 async def _(bot: Bot, event: GroupMessageEvent):
     msg = event.message.extract_plain_text()
-    msg = re.sub(pattern=r"^本地文件同步", repl="", string=msg).strip(" ").split(" ")
+    msg = re.sub(pattern=r"^#?本地文件同步", repl="", string=msg).strip(" ").split(" ")
     if len(msg) == 1 and msg[0] == "":
         msg = []
     argparser = argparse.ArgumentParser()

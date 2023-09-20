@@ -328,3 +328,17 @@ class DB_User:
             user.Money = int(user.Money - Money * 100)
             DB_User.updateUser(user)
             return True
+
+    @staticmethod
+    def banGroup(GroupID: int):
+        """封禁对应群聊"""
+        g = DB_User.getGroup(GroupID)
+        g.Permission = 3
+        DB_User.updateGroup(g)
+
+    @staticmethod
+    def banUser(QQ: int):
+        """封禁对应用户"""
+        u = DB_User.getUser(QQ)
+        u.Permission = 3
+        DB_User.updateUser(u)

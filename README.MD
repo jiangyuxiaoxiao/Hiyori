@@ -5,7 +5,9 @@
     <h1>Hiyori Bot</h1>
     <h3>基于Nonebot2框架的QQ聊天机器人</h3>
     <p align="center">
-      <img alt="Static Badge" src="https://img.shields.io/badge/python-3.10+-blue">
+      <a href="https://www.python.org/">
+        <img alt="Static Badge" src="https://img.shields.io/badge/python-3.10+-blue">
+      </a>
       <a href="https://github.com/nonebot/nonebot2">
         <img alt="nonebot2-2.0.1" src="https://img.shields.io/badge/nonebot2-2.0.1-orange">
       </a>
@@ -19,6 +21,7 @@
         <img src="https://wakatime.com/badge/user/7b275a68-8fe7-44fb-9b22-86cfd199fc1e/project/3d1eb992-cc9a-4fee-8d6a-337d2fee4569.svg" alt="wakatime">
       </a>
     </p>  
+
    <a href="http://和泉妃爱.com">
        项目文档
     </a>
@@ -106,16 +109,16 @@ python3 hiyori.py
 
 ```json
 {
-    "默认优先顺序": [
-        "QQ号",
-        "QQ号",
-        "QQ号"
-    ],
-    "群组规则": {
-        "群号1": "QQ号",
-        "群号2": "QQ号",
-        "群号3": "QQ号"
-    }
+  "默认优先顺序": [
+    "QQ号",
+    "QQ号",
+    "QQ号"
+  ],
+  "群组规则": {
+    "群号1": "QQ号",
+    "群号2": "QQ号",
+    "群号3": "QQ号"
+  }
 }
 ```
 

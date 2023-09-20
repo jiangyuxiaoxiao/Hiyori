@@ -43,3 +43,5 @@
 /Hiyori/Config/
 /Hiyori/.env.test
 /Hiyori/plugin.test.json
+/WindowsService/qsign119.py
+/MoeGoe/Data/config.json

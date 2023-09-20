@@ -8,11 +8,11 @@
 from nonebot.adapters.onebot.v11 import GroupBanNoticeEvent, Bot
 from nonebot import on_notice
 from nonebot import get_driver
+from nonebot import get_bots
 from Hiyori.Utils.Priority import Priority
 from Hiyori.Utils.Database.user import DB_User
 
 from nonebot.plugin import PluginMetadata
-
 
 __plugin_meta__ = PluginMetadata(
     name="双向禁言",  # 用于在菜单显示 用于插件开关
@@ -35,8 +35,10 @@ Ban_Checker = on_notice(block=False, priority=Priority.系统优先级)
 @Ban_Checker.handle()
 async def _(bot: Bot, event: GroupBanNoticeEvent):
     global superusers
-    # 如果自己被禁言了
-    if event.self_id == event.user_id:
+    bots = get_bots().values()
+    botsID = {int(b.self_id) for b in bots}
+    # 如果自己被禁言了 或者群中的其他bot被禁言
+    if (event.self_id == event.user_id) or (event.user_id in botsID):
         # 封禁对应群聊
         GroupID = event.group_id
         Group = DB_User.getGroup(GroupID)
@@ -48,7 +50,3 @@ async def _(bot: Bot, event: GroupBanNoticeEvent):
         message = f"群{group_name}({GroupID})触发封禁反击机制"
         for superuser in superusers:
             await bot.send_private_msg(user_id=int(superuser), message=message)
-
-
-
-
