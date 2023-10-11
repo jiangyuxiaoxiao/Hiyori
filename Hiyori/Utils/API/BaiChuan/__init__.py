@@ -12,7 +12,8 @@ from Hiyori.Utils.Message.Forward_Message import Nodes
 
 
 class BaiChuanChatter:
-    def __init__(self, self_id: int, user_id: int, maxLength: int = baiChuanConfig.maxLength, user_name: str = "用户", self_name: str = "妃爱"):
+    def __init__(self, self_id: int, user_id: int, maxLength: int = baiChuanConfig.maxLength, user_name: str = "用户", self_name: str = "妃爱",
+                 prompts: list[str] = None):
         """
 
         :param maxLength: 最长对话轮数，按队列顺序先进先出进行删除。当maxLength=0时不进行删除
@@ -23,6 +24,7 @@ class BaiChuanChatter:
         self.user_name = user_name
         self.self_id = self_id
         self.self_name = self_name
+        self.prompts = prompts
 
     async def ask(self, msg: str) -> str:
         if not isinstance(msg, str):
@@ -33,8 +35,11 @@ class BaiChuanChatter:
             if len(self.message) > self.maxLength * 2:
                 self.message.popleft()
                 self.message.popleft()
-
-        sendMsg = [{"role": "user", "content": "在接下来的对话中，请以妃爱作为自我称呼。"}] + list(self.message)
+        sendMsg = []
+        if self.prompts is not None:
+            for prompt in self.prompts:
+                sendMsg.append({"role": "user", "content": prompt})
+        sendMsg = [{"role": "user", "content": f"你叫{self.self_name}，是我的可爱的妹妹。"}] + list(self.message)
         sendMsg.append({"role": "user", "content": msg})
         url = f"{baiChuanConfig.host}:{baiChuanConfig.port}"
         async with aiohttp.ClientSession() as session:

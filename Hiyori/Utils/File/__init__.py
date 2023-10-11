@@ -78,5 +78,5 @@ def getFileInfo(path: str):
 
 
 if __name__ == '__main__':
-    id = getFileID("Data/Utils/File/File2")
+    # id = getFileID("Data/Utils/File/File2")
     print(id)

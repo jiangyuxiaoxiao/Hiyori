@@ -20,7 +20,7 @@ from .data_source import FortuneManager, fortune_manager
 
 require("nonebot_plugin_apscheduler")
 from Hiyori.Utils.Priority import Priority
-from nonebot_plugin_apscheduler import scheduler  # isort:skip
+from Hiyori.Plugins.Basic_plugins.nonebot_plugin_apscheduler import scheduler  # isort:skip
 
 __fortune_version__ = "v0.4.12"
 __fortune_usages__ = f"""

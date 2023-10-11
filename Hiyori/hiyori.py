@@ -48,7 +48,7 @@ else:
 if not os.path.isdir("Log"):
     os.makedirs("Log")
 now = datetime.now().strftime("%Y-%m-%d")
-logger.add(f"Log/Hiyori.log", level=save_log_level, rotation="00:01")
+logger.add(f"Log/Hiyori.log", level=save_log_level, rotation="1 days", retention="14 days")
 
 # 根据初始化配置选择插件目录配置文件进行初始化
 # 默认配置文件路径为./plugin.dev.json
