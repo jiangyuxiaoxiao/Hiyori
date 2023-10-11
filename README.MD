@@ -71,18 +71,20 @@
 + 安装Python3.10
 + 下载妃爱release包
 + 配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)的config.yml，填写QQ号与密码
-+ 点击 `Qsign，启动！.bat`
-+ 点击 `妃爱，启动！.bat`
++ 运行 `环境安装.bat` （第一次运行时）
++ 运行 `Qsign，启动！.bat`
++ 运行 `妃爱，启动！.bat`
 + 等待Qsign服务开始
-+ 点击 `CQHTTP，启动！.bat`
++ 运行 `CQHTTP，启动！.bat`
 
 ### linux启动
 
-+ 下载配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)及[qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign) 注意：当前Go-cqhttp仅支持qsign
++ 下载配置[Go-cqhttp](https://github.com/Mrs4s/go-cqhttp)及[qsign](https://github.com/fuqiuluo/unidbg-fetch-qsign)
   1.1.0（2023/08/11）
 + 安装Python3.10
 + 下载妃爱
 + 根据requirements.txt安装python环境
++ 在环境下运行`meme download`
 
 ```shell
 cd ./Hiyori
