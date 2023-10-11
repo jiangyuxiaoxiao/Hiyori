@@ -15,7 +15,7 @@ from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 from nonebot.plugin import _plugins
 from datetime import datetime
 
-from Hiyori.Utils.File import DirExist
+from Utils.File import DirExist
 
 # 程序开始时间
 startTime = time.time_ns()

@@ -16,6 +16,8 @@
       "nonebot_plugin_datastore",
       "nonebot_plugin_saa",
 
+      "Vits",
+
       "Clarifications",
 
       "Web_StaticFiles",
@@ -25,9 +27,10 @@
       "MessageRecallChecker",
       "Update_News",
       "Shop",
-      "SlaveMarket",
       "HiyoriShop",
+      "SlaveMarket",
       "SpotMarket",
+
       "Talk_To_Developer",
       "GroupFile_Backup",
 
@@ -49,8 +52,7 @@
       "nonebot_plugin_fortune",
       "nonebot_plugin_analysis_bilibili",
       "nonebot_plugin_remake",
-      "nonebot_plugin_today_waifu",
-      "nonebot_plugin_tarot"
+      "nonebot_plugin_today_waifu"
     ]
   }
 }
