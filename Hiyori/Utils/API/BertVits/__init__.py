@@ -29,7 +29,7 @@ def getModelsConfig() -> list:
 
 async def getVoice(text: str, model: int | str, character: int | str, sdp_ratio: float = 0.2,
                    noise: float = 0.5, noisew: float = 0.6,
-                   length: float = 1.2) -> bytes | None:
+                   length: float = 1.2, url=None) -> bytes | None:
     """
     获取bertVits语音（TTS)
 
@@ -40,9 +40,11 @@ async def getVoice(text: str, model: int | str, character: int | str, sdp_ratio:
     :param noise:
     :param noisew:
     :param length:
+    :param url: 临时的url
     :return: 音频字节
     """
-    url = f"{bertVitsConfig.host}:{bertVitsConfig.port}/voice"
+    if url is None:
+        url = f"{bertVitsConfig.host}:{bertVitsConfig.port}/voice"
     bv_model = None
     model_id = 0
     if isinstance(model, int):

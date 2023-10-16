@@ -39,7 +39,8 @@ class BaiChuanChatter:
         if self.prompts is not None:
             for prompt in self.prompts:
                 sendMsg.append({"role": "user", "content": prompt})
-        sendMsg = [{"role": "user", "content": f"你叫{self.self_name}，是我的可爱的妹妹。"}] + list(self.message)
+        # sendMsg = [{"role": "user", "content": f"你叫{self.self_name}，是我的可爱的妹妹。"}] + list(self.message)
+        sendMsg = list(self.message)
         sendMsg.append({"role": "user", "content": msg})
         url = f"{baiChuanConfig.host}:{baiChuanConfig.port}"
         async with aiohttp.ClientSession() as session:
