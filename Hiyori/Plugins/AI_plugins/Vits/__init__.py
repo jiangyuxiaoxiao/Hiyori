@@ -64,10 +64,8 @@ async def _(event: MessageEvent):
     if msg is None:
         return
     name = msg.group().split("说")[0].lstrip("#").strip()
+    # 优先使用bert模型
     if name in bertMap.keys():
-        if hasattr(event, "group_id"):
-            if event.group_id == 815818430 and bertMap[name]["mid"] == 0:
-                return
         audio = await BertVits.getVoice(text=text, model=bertMap[name]["mid"], character=bertMap[name]["cid"])
         await vitsSound.send(MessageSegment.record(audio))
         return

@@ -9,6 +9,7 @@ import aiohttp
 import asyncio
 import aiofiles
 from Hiyori.Utils.API.BertVits.config import bertVitsConfig
+from Hiyori.Utils.API.Baidu.OpenTranslate import Translate
 
 
 def getBV_Map() -> dict:
@@ -72,6 +73,20 @@ async def getVoice(text: str, model: int | str, character: int | str, sdp_ratio:
         chr_id = bv_model["spk2id"][character]
     else:
         raise TypeError("character should be a str or int value")
+
+    # 检查是否需要翻译
+    if "trans" in bv_model:
+        trans = bv_model["trans"]
+        texts = text.split("\n")
+        outs = []
+        for t in texts:
+            if t != "":
+                out = await Translate(Sentence=t, to_Language=trans)
+                outs.append(out)
+            else:
+                outs.append(t)
+        text = "\n".join(outs)
+
     params = {
         "model_id": model_id,
         "chr_id": chr_id,
