@@ -2,102 +2,72 @@ import asyncio
 import platform
 import random
 import time
-from datetime import datetime
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import nonebot
-import psutil
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
-from aiohttp import ClientConnectorError, ClientSession, ClientTimeout
 from nonebot import logger
-from nonebot.adapters.onebot.v11 import Bot
-from psutil._common import sdiskio, sdiskusage, snetio  # noqa
+from nonebot.internal.adapter import Bot
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from pil_utils import BuildImage
+from pil_utils.fonts import get_proper_font
 
-from .config import TestSiteCfg, config
-from .const import DEFAULT_AVATAR_PATH, DEFAULT_BG_PATH, DEFAULT_FONT_PATH
-from .statistics import (
-    get_bot_connect_time,
-    get_nonebot_run_time,
+from .config import config
+from .const import DEFAULT_BG_PATH
+from .status import (
+    CpuMemoryStat,
+    DiskStatus,
+    DiskUsageWithExc,
+    HeaderData,
+    NetworkConnectionError,
+    NetworkStatus,
+    ProcessStatus,
+    format_freq_txt,
+    get_cpu_memory_usage,
+    get_disk_status,
+    get_header_data,
+    get_network_status,
+    get_process_status,
+    get_system_name,
 )
 from .util import (
     async_open_img,
     async_request,
     format_byte_count,
-    format_timedelta,
     get_anime_pic,
-    get_qq_avatar,
-    get_system_name,
-    match_list_regexp,
 )
 from .version import __version__
 
-GRAY_BG_COLOR = "#aaaaaaaa"
+GRAY_BG_COLOR: str = "#aaaaaaaa"
 WHITE_BG_COLOR = config.ps_bg_color
 WHITE_MASK_COLOR = config.ps_mask_color
 
+FONT_PATH = config.ps_font or str(get_proper_font("国").path.resolve())
+
 
 def get_font(size: int):
-    default = str(DEFAULT_FONT_PATH)
-    if config.ps_font:
-        try:
-            return ImageFont.truetype(config.ps_font, size)
-        except:
-            logger.exception("加载自定义字体失败，使用默认字体")
+    return ImageFont.truetype(FONT_PATH, size)
 
-    return ImageFont.truetype(default, size)
+
+font_25 = get_font(25)
+font_30 = get_font(30)
+font_40 = get_font(40)
+font_45 = get_font(45)
+font_70 = get_font(70)
+font_footer = get_font(config.ps_footer_size)
 
 
 def get_usage_color(usage: float):
     usage = round(usage)
     if usage >= 90:
         return "orangered"
-    elif usage >= 70:
+    if usage >= 70:
         return "orange"
-    else:
-        return "lightgreen"
+    return "lightgreen"
 
 
-async def draw_header(bot: Bot):
-    # 获取Bot头像
-    try:
-        avatar = await get_qq_avatar(bot.self_id)
-        avatar = Image.open(BytesIO(avatar))
-    except:
-        logger.exception("获取Bot头像失败，使用默认头像替代")
-        avatar = await async_open_img(DEFAULT_AVATAR_PATH)
-
-    # bot状态信息
-    bot_stat = (await bot.get_status()).get("stat")
-    if bot_stat:
-        msg_rec = (
-            bot_stat.get("message_received") or bot_stat.get("MessageReceived") or "未知"
-        )
-        msg_sent = bot_stat.get("message_sent") or bot_stat.get("MessageSent") or "未知"
-    else:
-        msg_rec = msg_sent = "未知"
-
-    nick = (
-        list(config.nickname)[0]
-        if (config.ps_use_env_nick and config.nickname)
-        else (await bot.get_login_info())["nickname"]
-    )
-    bot_connected = (
-        format_timedelta(datetime.now() - t)
-        if (t := get_bot_connect_time(bot.self_id))
-        else "未知"
-    )
-    nb_run = (
-        format_timedelta(datetime.now() - t) if (t := get_nonebot_run_time()) else "未知"
-    )
-
-    # 系统启动时间
-    booted = format_timedelta(
-        datetime.now() - datetime.fromtimestamp(psutil.boot_time())
-    )
-
-    font_30 = get_font(30)
-    font_80 = get_font(80)
+async def draw_header(data: HeaderData) -> Image.Image:
+    avatar, nick, bot_connected, msg_rec, msg_sent, nb_run, booted = data
 
     bg = Image.new("RGBA", (1200, 300), WHITE_BG_COLOR)
     bg_draw = ImageDraw.Draw(bg)
@@ -111,12 +81,23 @@ async def draw_header(bot: Bot):
     bg.paste(avatar, (25, 25), circle_mask)
 
     # 标题
-    bg_draw.text((300, 140), nick, "black", font_80, "ld")
+    # bg_draw.text((300, 140), nick, "black", font_80, "ld")
+    BuildImage(bg).draw_text(
+        (300, 25, 1175, 140),
+        nick,
+        max_fontsize=80,
+        halign="left",
+        valign="bottom",
+        fontname=FONT_PATH,
+    )
 
     # 详细信息
     bg_draw.multiline_text(
         (300, 160),
-        f"Bot已连接 {bot_connected} | 收 {msg_rec} | 发 {msg_sent}\nNoneBot运行 {nb_run} | 系统运行 {booted}",
+        (
+            f"Bot已连接 {bot_connected} | 收 {msg_rec} | 发 {msg_sent}\n"
+            f"NoneBot运行 {nb_run} | 系统运行 {booted}"
+        ),
         "black",
         font_30,
     )
@@ -127,20 +108,9 @@ async def draw_header(bot: Bot):
     return bg
 
 
-async def draw_cpu_memory_usage():
+async def draw_cpu_memory_usage(data: CpuMemoryStat) -> Image.Image:
     # 获取占用信息
-    psutil.cpu_percent()
-    await asyncio.sleep(0.1)
-    cpu_percent = psutil.cpu_percent()  # async wait
-
-    cpu_count = psutil.cpu_count(logical=False)
-    cpu_count_logical = psutil.cpu_count()
-    cpu_freq = psutil.cpu_freq()
-    ram_stat = psutil.virtual_memory()
-    swap_stat = psutil.swap_memory()
-
-    font_70 = get_font(70)
-    font_25 = get_font(25)
+    cpu_percent, cpu_count, cpu_logical_count, cpu_freq, ram_stat, swap_stat = data
 
     bg = Image.new("RGBA", (1200, 550), WHITE_BG_COLOR)
     bg_draw = ImageDraw.Draw(bg)
@@ -193,25 +163,16 @@ async def draw_cpu_memory_usage():
 
     # 写详细信息
     # CPU
-    if cpu_freq.max == 0:
-        if cpu_freq.current == 0:
-            freq_t = "主频未知"
-        else:
-            freq_t = f"当前 {cpu_freq.current:.0f}MHz"
-    elif cpu_freq.max == cpu_freq.current:
-        freq_t = f"最大 {cpu_freq.max:.0f}MHz"
-    else:
-        freq_t = f"{cpu_freq.current:.0f}MHz / {cpu_freq.max:.0f}MHz"
     bg_draw.text(
         (200, 470),
-        f"{cpu_count}核 {cpu_count_logical}线程",
+        f"{cpu_count}核 {cpu_logical_count}线程",
         "darkslategray",
         font_25,
         "ms",
     )
     bg_draw.text(
         (200, 500),
-        freq_t,
+        format_freq_txt(cpu_freq),
         "darkslategray",
         font_25,
         "ms",
@@ -260,66 +221,16 @@ async def draw_cpu_memory_usage():
     return bg
 
 
-async def draw_disk_usage():
-    disks = {}
-    io_rw = {}
-    left_padding = 0
-
-    font_45 = get_font(45)
-    font_40 = get_font(40)
-
-    async def get_disk_usage():
-        """获取磁盘占用，返回左边距"""
-        nonlocal left_padding
-
-        # 获取磁盘状态
-        for _d in psutil.disk_partitions():
-            # 忽略分区
-            if _r := match_list_regexp(config.ps_ignore_parts, _d.mountpoint):
-                logger.info(f"空间读取 分区 {_d.mountpoint} 匹配 {_r.re.pattern}，忽略")
-                continue
-
-            # 根据盘符长度计算左侧留空长度用于写字
-            s = font_45.getlength(_d.mountpoint) + 25
-            if s > left_padding:
-                left_padding = s
-
-            try:
-                disks[_d.mountpoint] = psutil.disk_usage(_d.mountpoint)
-            except Exception as e:
-                logger.exception(f"读取 {_d.mountpoint} 占用失败")
-                if not config.ps_ignore_bad_parts:
-                    disks[_d.mountpoint] = e
-
-    async def get_disk_io():
-        """获取磁盘IO"""
-        io1: Dict[str, sdiskio] = psutil.disk_io_counters(True)
-        await asyncio.sleep(1)
-        io2: Dict[str, sdiskio] = psutil.disk_io_counters(True)
-
-        for _k, _v in io1.items():
-            # 忽略分区
-            if _r := match_list_regexp(config.ps_ignore_disk_ios, _k):
-                logger.info(f"IO统计 磁盘 {_k} 匹配 {_r.re.pattern}，忽略")
-                continue
-
-            _r = io2[_k].read_bytes - _v.read_bytes
-            _w = io2[_k].write_bytes - _v.write_bytes
-
-            if _r == 0 and _w == 0 and config.ps_ignore_no_io_disk:
-                logger.info(f"IO统计 忽略无IO磁盘 {_k}")
-                continue
-
-            io_rw[_k] = (format_byte_count(_r), format_byte_count(_w))
-
-    await asyncio.gather(get_disk_usage(), get_disk_io())
+async def draw_disk_usage(data: DiskStatus) -> Optional[Image.Image]:
+    disk_usage, disk_io = data
 
     # 列表为空直接返回
-    if not (disks or io_rw):
-        return
+    if not (disk_usage and disk_io):
+        return None
 
     # 计算图片高度，创建背景图
-    count = len(disks) + len(io_rw)
+    left_padding = max((font_45.getlength(x.name) + 25) for x in disk_usage)
+    count = len(disk_usage) + len(disk_io)
     bg = Image.new(
         "RGBA",
         (
@@ -327,7 +238,7 @@ async def draw_disk_usage():
             100  # 上下边距
             + (50 * count)  # 每行磁盘/IO统计
             + (25 * (count - 1))  # 间隔
-            + (10 if disks and io_rw else 0),  # 磁盘统计与IO统计间的间距
+            + (10 if disk_usage and disk_io else 0),  # 磁盘统计与IO统计间的间距
         ),
         WHITE_BG_COLOR,
     )
@@ -336,12 +247,12 @@ async def draw_disk_usage():
     top = 50
 
     # 画分区占用列表
-    if disks:
+    if disk_usage:
         max_len = 990 - (50 + left_padding)  # 进度条长度
 
-        its: List[Tuple[str, Union[sdiskusage, Exception]]] = disks.items()  # noqa
-        for name, usage in its:
-            fail = isinstance(usage, Exception)
+        for usage in disk_usage:
+            name = usage.name
+            fail = isinstance(usage, DiskUsageWithExc)
 
             # 进度条背景
             bg_draw.rectangle((50 + left_padding, top, 990, top + 50), GRAY_BG_COLOR)
@@ -376,7 +287,7 @@ async def draw_disk_usage():
                 (
                     f"{usage.used / 1024 / 1024 / 1024:.2f}G / {usage.total / 1024 / 1024 / 1024:.2f}G"
                     if not fail
-                    else str(usage)
+                    else str(usage.exception)
                 ),
                 "black",
                 font_40,
@@ -386,73 +297,31 @@ async def draw_disk_usage():
             top += 75
 
     # 写IO统计
-    if io_rw:
-        if disks:
+    if disk_io:
+        if disk_usage:
             # 分隔线 25+10px
             top += 10
             bg_draw.rectangle((50, top - 17, 1150, top - 15), GRAY_BG_COLOR)
 
-        for k, (r, w) in io_rw.items():
-            bg_draw.text((50, top + 25), k, "black", font_45, "lm")
-            bg_draw.text((1150, top + 25), f"读 {r}/s | 写 {w}/s", "black", font_45, "rm")
+        for name, read, write in disk_io:
+            bg_draw.text((50, top + 25), name, "black", font_45, "lm")
+            bg_draw.text(
+                (1150, top + 25),
+                f"读 {format_byte_count(read)}/s | 写 {format_byte_count(write)}/s",
+                "black",
+                font_45,
+                "rm",
+            )
             top += 75
 
     return bg
 
 
-async def draw_net_io():
-    ios = {}
-    connections: List[Tuple[str, Union[Tuple[int, float], Exception]]] = []
-
-    async def get_net_io():
-        """网络IO"""
-
-        io1: Dict[str, snetio] = psutil.net_io_counters(True)
-        await asyncio.sleep(1)
-        io2: Dict[str, snetio] = psutil.net_io_counters(True)
-
-        for k_, v in io1.items():
-            if r := match_list_regexp(config.ps_ignore_nets, k_):
-                logger.info(f"网卡 {k_} 匹配 {r.re.pattern}，忽略")
-                continue
-
-            u_ = io2[k_].bytes_sent - v.bytes_sent
-            d_ = io2[k_].bytes_recv - v.bytes_recv
-
-            if u_ == 0 and d_ == 0 and config.ps_ignore_0b_net:
-                logger.info(f"网卡 {k_} 上下行0B，忽略")
-                continue
-
-            ios[k_] = (format_byte_count(u_), format_byte_count(d_))
-
-    async def get_net_connection():
-        """网络连通性"""
-        nonlocal connections
-
-        async def get_result(site: TestSiteCfg):
-            try:
-                async with ClientSession(
-                    timeout=ClientTimeout(total=config.ps_test_timeout)
-                ) as c:
-                    time1 = time.time()
-                    async with c.get(
-                        site.url, proxy=config.proxy if site.use_proxy else None
-                    ) as r:
-                        time2 = time.time() - time1
-                        connections.append((site.name, (r.status, time2 * 1000)))
-
-            except Exception as e:
-                logger.opt(exception=e).exception(f"网页 {site.name}({site.url}) 访问失败")
-                connections.append((site.name, e))
-
-        await asyncio.gather(*[get_result(x) for x in config.ps_test_sites])
-
-    await asyncio.gather(get_net_io(), get_net_connection())
+async def draw_net_io(data: NetworkStatus) -> Optional[Image.Image]:
+    ios, connections = data
 
     if not (ios and connections):
         return None
-
-    font_45 = get_font(45)
 
     # 计算图片高度并新建图片
     count = len(ios) + len(connections)
@@ -472,9 +341,15 @@ async def draw_net_io():
     # 写字
     top = 50
     if ios:
-        for k, (u, d) in ios.items():
-            draw.text((50, top + 25), k, "black", font_45, "lm")
-            draw.text((1150, top + 25), f"↑ {u}/s | ↓ {d}/s", "black", font_45, "rm")
+        for name, sent, recv in ios:
+            draw.text((50, top + 25), name, "black", font_45, "lm")
+            draw.text(
+                (1150, top + 25),
+                f"↑ {format_byte_count(sent)}/s | ↓ {format_byte_count(recv)}/s",
+                "black",
+                font_45,
+                "rm",
+            )
             top += 75
 
     if connections:
@@ -483,40 +358,62 @@ async def draw_net_io():
             top += 10
             draw.rectangle((50, top - 17, 1150, top - 15), GRAY_BG_COLOR)
 
-        for k, v in connections:
-            if isinstance(v, Exception):
-                if isinstance(v, asyncio.TimeoutError):
-                    tip = "超时"
-                elif isinstance(v, ClientConnectorError):
-                    tip = f"[{v.os_error.errno}] {v.os_error.strerror}"
-                else:
-                    tip = v.__class__.__name__
+        for conn in connections:
+            name = conn.name
+            if isinstance(conn, NetworkConnectionError):
+                tip = conn.error
             else:
-                code, latency = v
-                tip = str(code)
-                if code == 200:
-                    tip += f" | {latency:.2f}ms"
+                _, code, reason, latency = conn
+                tip = f"{code} {reason}"
+                tip = f"{tip} | {latency:.2f}ms" if code == 200 else tip
 
-            draw.text((50, top + 25), k, "black", font_45, "lm")
+            draw.text((50, top + 25), name, "black", font_45, "lm")
             draw.text((1150, top + 25), tip, "black", font_45, "rm")
             top += 75
 
     return bg
 
 
-async def draw_footer(img: Image.Image):
-    font_footer = get_font(config.ps_footer_size)
+async def draw_process_status(data: List[ProcessStatus]) -> Optional[Image.Image]:
+    if not data:
+        return None
+
+    # 计算图片高度并新建图片
+    count = len(data)
+    bg = Image.new(
+        "RGBA",
+        (1200, 100 + (50 * count) + (25 * (count - 1))),  # 高：上下边距 + 每行 + 间隔
+        WHITE_BG_COLOR,
+    )
+    draw = ImageDraw.Draw(bg)
+
+    offset = 50
+    for name, cpu, mem in data:
+        draw.text((50, offset + 25), name, "black", font_45, "lm")
+        draw.text(
+            (1150, offset + 25),
+            f"CPU {cpu:.2f}% | MEM {format_byte_count(mem)}",
+            "black",
+            font_45,
+            "rm",
+        )
+        offset += 75
+
+    return bg
+
+
+async def draw_footer(img: Image.Image, time_str: str):
     draw = ImageDraw.Draw(img)
     w, h = img.size
     padding = 15
 
     draw.text(
-        (img.size[0] / 2, h - padding),
+        (w / 2, h - padding),
         (
             f"NoneBot {nonebot.__version__} × PicStatus {__version__} | "
             f"{platform.python_implementation()} {platform.python_version()} | "
             f"{await get_system_name()} | "
-            f"{time.strftime('%Y-%m-%d %H:%M:%S')}"
+            f"{time_str}"
         ),
         "darkslategray",
         font_footer,
@@ -524,45 +421,63 @@ async def draw_footer(img: Image.Image):
     )
 
 
-async def get_bg(pic: Union[str, bytes, BytesIO] = None) -> Image.Image:
-    if config.ps_custom_bg and (not pic):
-        pic = random.choice(config.ps_custom_bg)
+async def get_bg(pic: Optional[Union[bytes, Image.Image]] = None) -> Image.Image:
+    if isinstance(pic, Image.Image):
+        return pic
 
-    if pic:
+    if isinstance(pic, bytes):
         try:
-            if isinstance(pic, str):
-                if pic.startswith("file:///"):
-                    return await async_open_img(pic.replace("file:///", "", 1))
-                else:
-                    pic = await async_request(pic)
+            return Image.open(BytesIO(pic))
+        except Exception:
+            logger.exception("打开用户自定义背景图失败，弃用")
+            pic = None
 
-            if isinstance(pic, bytes):
-                pic = BytesIO(pic)
-
-            return Image.open(pic)
-        except:
+    if config.ps_custom_bg and (not pic):
+        url = random.choice(config.ps_custom_bg)
+        try:
+            if url.startswith("file:///"):
+                return await async_open_img(url[8:])
+            return Image.open(await async_request(url))
+        except Exception:
             logger.exception("下载/打开自定义背景图失败，使用随机背景图")
 
     try:
         return Image.open(BytesIO(await get_anime_pic()))
-    except:
+    except Exception:
         logger.exception("下载/打开随机背景图失败，使用默认背景图")
 
     return await async_open_img(DEFAULT_BG_PATH)
 
 
-async def get_stat_pic(bot: Bot, bg=None):
+async def get_stat_pic(bot: Bot, bg_arg: Optional[bytes] = None) -> bytes:
     img_w = 1300
     img_h = 50  # 这里是上边距，留给下面代码统计图片高度
 
-    # 获取背景及各模块图片
-    ret: List[Optional[Image.Image]] = await asyncio.gather(  # noqa
-        get_bg(bg),
-        draw_header(bot),
-        draw_cpu_memory_usage(),
-        draw_disk_usage(),
-        draw_net_io(),
+    (
+        header_data,
+        cpu_memory_usage,
+        disk_stat,
+        net_stat,
+        proc_stat,
+    ) = await asyncio.gather(
+        get_header_data(bot),
+        get_cpu_memory_usage(),
+        get_disk_status(),
+        get_network_status(),
+        get_process_status(),
     )
+    now_time = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    # 获取背景及各模块图片
+    ret = await asyncio.gather(
+        get_bg(bg_arg),
+        draw_header(header_data),
+        draw_cpu_memory_usage(cpu_memory_usage),
+        draw_disk_usage(disk_stat),
+        draw_net_io(net_stat),
+        draw_process_status(proc_stat),
+    )
+
     bg = ret[0]
     ret = ret[1:]
 
@@ -606,11 +521,11 @@ async def get_stat_pic(bot: Bot, bg=None):
             h_pos += p.size[1] + 50
 
     # 写footer
-    await draw_footer(bg)
+    await draw_footer(bg, now_time)
 
     # 尝试解决黑底白底颜色不同问题
     bg = bg.convert("RGB")
 
     bio = BytesIO()
-    bg.save(bio, "png")
-    return bio
+    bg.save(bio, "jpeg")
+    return bio.getvalue()

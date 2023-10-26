@@ -38,6 +38,12 @@ UsersCD: dict[int, CD_Counter] = dict()
 @run_preprocessor
 async def 功能调用CD检查(matcher: Matcher, bot: Bot, event: Event):
     global Config
+    # 对于已关机的群聊直接返回
+    if hasattr(event, "group_id"):
+        GroupID = event.group_id
+        Status = DB_User.getGroup(GroupID).Status
+        if Status == "off":
+            return
     # 对于没有元数据的插件，不进行CD调用检查
     if not hasattr(matcher.plugin.metadata, "extra"):
         return

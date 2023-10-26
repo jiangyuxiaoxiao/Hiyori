@@ -1,11 +1,14 @@
+from nonebot import require
 from nonebot.plugin import PluginMetadata
 
-from .__main__ import *
-from .config import config
-from .statistics import *
-from .version import __version__
+require("nonebot_plugin_saa")
 
-usage = "#状态 #运行状态"
+from . import __main__ as __main__  # noqa: E402
+from . import statistics as statistics  # noqa: E402
+from .config import Cfg, config  # noqa: E402
+from .version import __version__ as __version__  # noqa: E402
+
+usage = "指令：运行状态 / 状态 / yxzt / zt / status"
 if config.ps_need_at:
     usage += "\n注意：使用指令时需要@机器人"
 if config.ps_only_su:
@@ -15,6 +18,16 @@ __plugin_meta__ = PluginMetadata(
     name="服务器状态",
     description="以图片形式显示妃爱的运行状态",
     usage=usage,
+    type="application",
+    homepage="https://github.com/lgc-NB2Dev/nonebot-plugin-picstatus",
+    config=Cfg,
+    supported_adapters={
+        "~onebot.v11",
+        "~onebot.v12",
+        "~telegram",
+        "~kaiheila",
+        "~qqguild",
+    },
     extra={
         "CD_Weight": 5,
         "example": "",

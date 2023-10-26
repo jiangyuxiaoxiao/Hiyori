@@ -29,8 +29,8 @@ def getModelsConfig() -> list:
 
 
 async def getVoice(text: str, model: int | str, character: int | str, sdp_ratio: float = 0.2,
-                   noise: float = 0.5, noisew: float = 0.6,
-                   length: float = 1.2, url=None) -> bytes | None:
+                   noise: float = 0.2, noisew: float = 0.9,
+                   length: float = 1.0, url=None) -> bytes | None:
     """
     获取bertVits语音（TTS)
 
@@ -105,8 +105,8 @@ async def getVoice(text: str, model: int | str, character: int | str, sdp_ratio:
 
 
 async def saveVoice(savePath: str, text: str, model: int | str, chr: int | str, sdp_ratio: float = 0.2,
-                    noise: float = 0.5, noisew: float = 0.6,
-                    length: float = 1.2) -> bool:
+                    noise: float = 0.2, noisew: float = 0.9,
+                    length: float = 1.0) -> bool:
     """保存音频文件至本地"""
     audio = await getVoice(text, model, chr, sdp_ratio, noise, noisew, length)
     if audio is None:

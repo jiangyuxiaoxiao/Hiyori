@@ -9,7 +9,7 @@ import subprocess
 import locale
 
 cmd = [".\\Cqhttp\\Qsign1.1.9\\bin\\unidbg-fetch-qsign.bat",
-       "--basePath=.\\Cqhttp\\Qsign1.1.9\\txlib\\8.9.71"]
+       "--basePath=.\\Cqhttp\\Qsign1.1.9\\txlib\\8.9.80"]
 
 
 def start_process(command):
